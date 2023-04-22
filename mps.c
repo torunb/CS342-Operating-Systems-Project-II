@@ -46,6 +46,28 @@ int main(int argc, char* argv[])
         else {
             printf("[-] Ignoring the unknown flag/argument: %s", cur);
         }
-
     }
+
+    /* checking specified input conditions:
+        * If sap is set to be M, we should have N to be greater than 1
+        * If sap is set to be S, qs must be set to NA
+        * If alg is set to FCFS or SJF, Q has to be set to 0
+        NOTE: The checking procedure will be done after the inputs are taken because
+        flags can be specified in random order!
+    */
+
+    if(strcmp(sap, "M") == 0 && N <= 1){
+        printf("If SAP is set to be M, we should have N to be greater than 1");
+        return 1; //termination due to error
+    }
+
+    if(strcmp(sap, "S") == 0){
+        strcpy(qs, "NA"); //not applicable 
+    }
+
+    if(strcmp(alg, "FCFS") == 0 || strcmp(alg,"SJF") == 0){
+        Q = 0;
+    }
+
+    
 }
