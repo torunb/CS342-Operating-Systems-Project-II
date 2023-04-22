@@ -57,8 +57,7 @@ int main(int argc, char* argv[])
     */
 
     if(strcmp(sap, "M") == 0 && N <= 1){
-        printf("If SAP is set to be M, we should have N to be greater than 1");
-        return 1; //termination due to error
+        N = 2; //set N to its default value if the input N is wrong
     }
 
     if(strcmp(sap, "S") == 0){
@@ -69,5 +68,5 @@ int main(int argc, char* argv[])
         Q = 0;
     }
 
-    
+
 }
