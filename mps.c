@@ -16,11 +16,14 @@ typedef struct {
     int processorId;
 } BurstItem;
 
+struct Node {
+    BurstItem pcb;
+    struct Node *next;
+};
+
 struct arg {
     //Fill the thread (processor) arguments
 };
-
-
 
 /* the function to be executed by threads (processors) */
 static void *processBurts(void *arg_ptr){
@@ -107,6 +110,8 @@ int main(int argc, char* argv[])
     /* After everything is set, the process can begin...*/
 
     /* QUEUE(S) CREATION */
+    
+
 
     /* THREAD CREATION PART */
 
