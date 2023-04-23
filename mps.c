@@ -6,9 +6,21 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-struct arg {
+typedef struct {
+    int pid;
+    double burstLength;
+    double arrivalTime;
+    double remainingTime;
+    double finishTime;
+    double turnaroundTime;
+    int processorId;
+} BurstItem;
 
+struct arg {
+    //Fill the thread (processor) arguments
 };
+
+
 
 /* the function to be executed by threads (processors) */
 static void *processBurts(void *arg_ptr){
@@ -93,6 +105,10 @@ int main(int argc, char* argv[])
     }
 
     /* After everything is set, the process can begin...*/
+
+    /* QUEUE(S) CREATION */
+
+    /* THREAD CREATION PART */
 
     /* dynamically allocate the number of thread ids */
     tids = (pthread_t*) malloc(N * sizeof(pthread_t));
