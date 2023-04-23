@@ -1,15 +1,39 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/time.h>
+
+struct arg {
+
+};
+
+/* the function to be executed by threads (processors) */
+static void *processBurts(void *arg_ptr){
+
+}
+
+
 
 int main(int argc, char* argv[])
 {
+    /* the thread (processor) ids */
+    pthread_t* tids;
+    /* thread (processor) function arguments */
+    struct arg* t_args;
+    /* the number of processors */
     int N = 2;
+    /* the time quantum (ms) */
     int Q = 20;
     int T=200, T1=10, T2=1000, L=100, L1=10, L2=500;
     int outmode = 1;
+    /* the scheduling approach S or M */
     char* sap = "M";
+    /* the queue selection method */
     char* qs = "RM";
+    /* the scheduling algorithm */
     char* alg = "RR";
     char* infile = "in.txt";
     char* outfile = "out.txt";
@@ -68,5 +92,26 @@ int main(int argc, char* argv[])
         Q = 0;
     }
 
+    /* After everything is set, the process can begin...*/
+
+    /* dynamically allocate the number of thread ids */
+    tids = (pthread_t*) malloc(N * sizeof(pthread_t));
+
+    /* dynamically allocate the number of thread arguments */
+    t_args = (struct arg*) malloc (N * sizeof(struct arg)); 
+
+    int ret;
+
+    for(int tIndex = 0; tIndex < N; tIndex++){
+        //
+        /*TODO: Thread argument declarations will come here*/
+        //
+        ret = pthread_create(&(tids[tIndex]), NULL, processBurts,
+                             (void *) &(t_args[tIndex]));
+        
+        if(ret != 0){
+            exit(1);
+        }
+    }
 
 }
