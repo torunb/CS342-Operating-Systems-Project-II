@@ -22,7 +22,8 @@ struct Node {
 };
 
 struct arg {
-    //Fill the thread (processor) arguments
+    /* the processor id */
+    int processorId;
 };
 
 /* the function to be executed by threads (processors) */
@@ -142,9 +143,7 @@ int main(int argc, char* argv[])
     int ret;
 
     for(int tIndex = 0; tIndex < N; tIndex++){
-        //
-        /*TODO: Thread argument declarations will come here*/
-        //
+        t_args[tIndex].processorId = tIndex;
         ret = pthread_create(&(tids[tIndex]), NULL, processBurts,
                              (void *) &(t_args[tIndex]));
         
