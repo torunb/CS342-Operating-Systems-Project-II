@@ -117,21 +117,14 @@ int main(int argc, char* argv[])
         readyProcesses = (struct Node**) malloc(N * sizeof(struct Node*));
         readyQueueNum = N;
         for(int i = 0; i < N; i++){
-            struct Node* dummyBurst = (struct Node*)malloc(sizeof(struct Node));
-            dummyBurst->pcb.processorId = -1; //dummy var
-            dummyBurst->next = NULL;
-            readyProcesses[i] = dummyBurst;
+            readyProcesses[i] = NULL;
         }
     }
     else if(strcmp(sap, "S") == 0){
         readyProcesses = (struct Node**) malloc(sizeof(struct Node*));
         readyQueueNum = 1;
-        struct Node* dummyBurst = (struct Node*)malloc(sizeof(struct Node));
-        dummyBurst->pcb.processorId = -1; //dummy var
-        dummyBurst->next = NULL;
-        readyProcesses[0] = dummyBurst;
+        readyProcesses[0] = NULL;
     }
-
 
     /* THREAD CREATION PART */
     /* dynamically allocate the number of thread ids */
@@ -153,3 +146,15 @@ int main(int argc, char* argv[])
     }
 
 }
+
+/* 
+------------------dummy creation code---------------------
+
+for(int i = 0; i < N; i++){
+    struct Node* dummyBurst = (struct Node*)malloc(sizeof(struct Node));
+    dummyBurst->pcb.processorId = -1; //dummy var
+    dummyBurst->next = NULL;
+    readyProcesses[i] = dummyBurst;
+}
+
+*/
