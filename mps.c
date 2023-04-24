@@ -31,6 +31,7 @@ static void *processBurts(void *arg_ptr){
 }
 
 struct Node** readyProcesses;
+int readyQueueNum;
 struct Node* finishedProcesses; 
 
 int main(int argc, char* argv[])
@@ -113,12 +114,21 @@ int main(int argc, char* argv[])
     /* QUEUE(S) CREATION */
     if(strcmp(sap, "M") == 0){
         readyProcesses = (struct Node**) malloc(N * sizeof(struct Node*));
+        readyQueueNum = N;
         for(int i = 0; i < N; i++){
             struct Node* dummyBurst = (struct Node*)malloc(sizeof(struct Node));
             dummyBurst->pcb.processorId = -1; //dummy var
             dummyBurst->next = NULL;
             readyProcesses[i] = dummyBurst;
         }
+    }
+    else if(strcmp(sap, "S") == 0){
+        readyProcesses = (struct Node**) malloc(sizeof(struct Node*));
+        readyQueueNum = 1;
+        struct Node* dummyBurst = (struct Node*)malloc(sizeof(struct Node));
+        dummyBurst->pcb.processorId = -1; //dummy var
+        dummyBurst->next = NULL;
+        readyProcesses[0] = dummyBurst;
     }
 
 
