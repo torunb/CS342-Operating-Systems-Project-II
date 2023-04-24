@@ -34,7 +34,8 @@ struct arg {
 
 /* the function to be executed by threads (processors) */
 static void *processBurts(void *arg_ptr){
-
+    int processorId = ((struct arg *) arg_ptr)->processorId;
+    struct Node* readyQueue = ((struct arg *) arg_ptr)->readyQueue;
 }
 
 int main(int argc, char* argv[])
@@ -145,7 +146,6 @@ int main(int argc, char* argv[])
         else if(strcmp(sap, "S") == 0){
             t_args[tIndex].readyQueue = readyProcesses[0];
         }
-        t_args[tIndex].readyQueue = 
         ret = pthread_create(&(tids[tIndex]), NULL, processBurts,
                              (void *) &(t_args[tIndex]));
         
