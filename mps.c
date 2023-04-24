@@ -6,6 +6,10 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+struct Node** readyProcesses;
+int readyQueueNum;
+struct Node* finishedProcesses; 
+
 typedef struct {
     int pid;
     double burstLength;
@@ -24,16 +28,14 @@ struct Node {
 struct arg {
     /* the processor id */
     int processorId;
+    /* the process ready queue */
+    struct Node* readyQueue;
 };
 
 /* the function to be executed by threads (processors) */
 static void *processBurts(void *arg_ptr){
 
 }
-
-struct Node** readyProcesses;
-int readyQueueNum;
-struct Node* finishedProcesses; 
 
 int main(int argc, char* argv[])
 {
@@ -137,6 +139,13 @@ int main(int argc, char* argv[])
 
     for(int tIndex = 0; tIndex < N; tIndex++){
         t_args[tIndex].processorId = tIndex;
+        if(strcmp(sap, "M") == 0){
+            t_args[tIndex].readyQueue = readyProcesses[tIndex];
+        }
+        else if(strcmp(sap, "S") == 0){
+            t_args[tIndex].readyQueue = readyProcesses[0];
+        }
+        t_args[tIndex].readyQueue = 
         ret = pthread_create(&(tids[tIndex]), NULL, processBurts,
                              (void *) &(t_args[tIndex]));
         
