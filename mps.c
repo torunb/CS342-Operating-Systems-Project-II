@@ -5,6 +5,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <pthread.h>
+
+pthread_mutex_t *queueMutex;
+pthread_mutex_t finishedProcessesMutex;
 
 struct Node** readyProcesses;
 int readyQueueNum;
@@ -36,6 +40,7 @@ struct arg {
 static void *processBurts(void *arg_ptr){
     int processorId = ((struct arg *) arg_ptr)->processorId;
     struct Node* readyQueue = ((struct arg *) arg_ptr)->readyQueue;
+
 }
 
 int main(int argc, char* argv[])
@@ -58,6 +63,9 @@ int main(int argc, char* argv[])
     char* alg = "RR";
     char* infile = "in.txt";
     char* outfile = "out.txt";
+
+    /* pid count */
+    int pidCount = 0;
 
 
     for(int i = 1; i < argc; i++) {
@@ -114,6 +122,23 @@ int main(int argc, char* argv[])
     }
 
     /* After everything is set, the process can begin...*/
+
+    /* MUTEX LOCK INITIALIZATION */
+    /* initialize the queue mutex array */
+    if(strcmp(sap, "M") == 0){
+        queueMutex = (pthread_mutex_t*) malloc(N * sizeof(pthread_mutex_t));
+        /* initialize every mutex lock of queue(s) inside for loop */
+        for (int i = 0; i < N; i++){
+            pthread_mutex_init(&queueMutex[i], NULL);
+        }        
+    }
+    else if(strcmp(sap, "S") == 0){
+        queueMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
+        pthread_mutex_init(&queueMutex[0], NULL);
+    }
+
+    /* initialize the finished processes mutex lock*/
+    pthread_mutex_init(&finishedProcessesMutex, NULL);
 
     /* QUEUE(S) CREATION */
     if(strcmp(sap, "M") == 0){
