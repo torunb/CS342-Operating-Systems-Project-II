@@ -30,7 +30,8 @@ static void *processBurts(void *arg_ptr){
 
 }
 
-
+struct Node** readyProcesses;
+struct Node* finishedProcesses; 
 
 int main(int argc, char* argv[])
 {
@@ -110,7 +111,15 @@ int main(int argc, char* argv[])
     /* After everything is set, the process can begin...*/
 
     /* QUEUE(S) CREATION */
-    
+    if(strcmp(sap, "M") == 0){
+        readyProcesses = (struct Node**) malloc(N * sizeof(struct Node*));
+        for(int i = 0; i < N; i++){
+            struct Node* dummyBurst = (struct Node*)malloc(sizeof(struct Node));
+            dummyBurst->pcb.processorId = -1; //dummy var
+            dummyBurst->next = NULL;
+            readyProcesses[i] = dummyBurst;
+        }
+    }
 
 
     /* THREAD CREATION PART */
