@@ -123,7 +123,6 @@ int main(int argc, char* argv[])
 
 
     /* THREAD CREATION PART */
-
     /* dynamically allocate the number of thread ids */
     tids = (pthread_t*) malloc(N * sizeof(pthread_t));
 
