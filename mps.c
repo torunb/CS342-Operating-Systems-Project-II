@@ -196,7 +196,13 @@ int main(int argc, char* argv[])
     int timeInput;
 
     while(fscanf(filePtr, "%s %d", inputType, &timeInput) != EOF){
-        
+        if(strcmp(inputType, "PL") == 0){
+            //pl segment
+        }
+
+        if(strcmp(inputType, "IAT") == 0){
+            //iat segment
+        }
     }
 
     fclose(filePtr);
