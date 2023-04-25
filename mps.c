@@ -143,6 +143,29 @@ static void addNodeToEnd(struct Node** head, int pid, int processorId){
     return;
 }
 
+/*function to add a dummyNode to queue linked list*/
+static void addNodeToEndDummy(struct Node** head, int pid, int processorId){
+    struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
+    nodeNew->pcb.pid = pid;
+    nodeNew->pcb.processorId = processorId;
+    nodeNew->pcb.burstLength = -1;
+    nodeNew->next = NULL;
+
+    struct Node* last = *head;
+
+    if(*head == NULL){
+        *head = nodeNew;
+        return;
+    }
+
+    while (last->next != NULL){
+        last = last->next;
+    }
+
+    last->next = nodeNew;
+    return;
+}
+
 /* function that adds according to SJF */
 static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
@@ -364,8 +387,12 @@ int main(int argc, char* argv[])
         }
 
         if(strcmp(inputType, "IAT") == 0){
-            //iat segment
+            usleep(timeInput);
         }
+    }
+
+    for(int i = 0; i < N; i++){
+        addNodeToEndDummy(&readyProcesses[i],pidCount,i);
     }
 
     fclose(filePtr);
@@ -379,15 +406,3 @@ int main(int argc, char* argv[])
 	}
 
 }
-
-/* 
-------------------dummy creation code---------------------
-
-for(int i = 0; i < N; i++){
-    struct Node* dummyBurst = (struct Node*)malloc(sizeof(struct Node));
-    dummyBurst->pcb.processorId = -1; //dummy var
-    dummyBurst->next = NULL;
-    readyProcesses[i] = dummyBurst;
-}
-
-*/
