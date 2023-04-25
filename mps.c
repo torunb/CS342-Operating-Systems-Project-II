@@ -43,6 +43,73 @@ static void *processBurts(void *arg_ptr){
 
 }
 
+/*function to find the smallest integer position in an array*/
+static int findSmallestIntPos(int* intArr, int numOfElements){
+    int val = intArr[0];
+    int position = 0;
+    for(int i = 0; i < numOfElements; i++){
+        if(val > intArr[i]){
+            val = intArr[i];
+            position = i;
+        }
+    }
+    return position;
+}
+
+/*function to add a new node to queue linked list*/
+static void addNodeToEnd(struct Node** head, int pid, int processorId){
+    struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
+    nodeNew->pcb.pid = pid;
+    nodeNew->pcb.processorId = processorId;
+    nodeNew->next = NULL;
+
+    struct Node* last = *head;
+
+    if(*head == NULL){
+        *head = nodeNew;
+        return;
+    }
+
+    while (last->next != NULL){
+        last = last->next;
+    }
+
+    last->next = nodeNew;
+    return;
+}
+
+/* function that adds according to SJF */
+static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId){
+    struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
+    nodeNew->pcb.pid = pid;
+    nodeNew->pcb.processorId = processorId;
+    nodeNew->next = NULL;
+
+    struct Node* last = *head;
+
+    if(*head == NULL){
+        *head = nodeNew;
+        return;
+    }
+
+    if(last->pcb.burstLength > nodeNew->pcb.burstLength){
+        *head = nodeNew;
+        nodeNew->next = last;
+        return;
+    }
+
+    while (last->next != NULL && 
+           last->next->pcb.burstLength <= nodeNew->pcb.burstLength)
+    {
+        last = last->next;
+    }
+
+    struct Node* temp = last->next;
+    last->next = nodeNew;
+    nodeNew->next = temp;
+    return;
+}
+
 int main(int argc, char* argv[])
 {
     /* the thread (processor) ids */
@@ -69,6 +136,12 @@ int main(int argc, char* argv[])
 
     /* file pointer */
     FILE* filePtr;
+
+    /* the number of load in queues for LM */
+    int* loadNum;
+
+    /* the turn number for queues for RM */
+    int queueTurn = 0;
 
     for(int i = 1; i < argc; i++) {
         char* cur = argv[i];
@@ -149,6 +222,9 @@ int main(int argc, char* argv[])
         for(int i = 0; i < N; i++){
             readyProcesses[i] = NULL;
         }
+        if(strcmp(qs,"LM") == 0){
+            loadNum = (int*) malloc(N * sizeof(int));
+        }
     }
     else if(strcmp(sap, "S") == 0){
         readyProcesses = (struct Node**) malloc(sizeof(struct Node*));
@@ -197,7 +273,29 @@ int main(int argc, char* argv[])
 
     while(fscanf(filePtr, "%s %d", inputType, &timeInput) != EOF){
         if(strcmp(inputType, "PL") == 0){
-            //pl segment
+            if(strcmp(qs, "RM") == 0){
+                if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                    addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N);
+                }
+
+                if(strcmp(alg,"SJF") == 0){
+                    addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N);
+                }
+                queueTurn++;
+                pidCount++;
+            }
+            if(strcmp(qs,"LM") == 0){
+                int smallestIntPos = findSmallestIntPos(loadNum, N);
+                if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                    addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos);
+                }
+
+                if(strcmp(alg,"SJF") == 0){
+                    addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos);
+                }
+                pidCount++;
+                loadNum[smallestIntPos] = loadNum[smallestIntPos] + 1;
+            }
         }
 
         if(strcmp(inputType, "IAT") == 0){
