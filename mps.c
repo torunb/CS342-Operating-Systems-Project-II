@@ -9,6 +9,9 @@
 
 pthread_mutex_t *queueMutex;
 pthread_mutex_t finishedProcessesMutex;
+pthread_mutex_t** locks;
+
+char* alg;
 
 struct Node** readyProcesses;
 int readyQueueNum;
@@ -21,11 +24,13 @@ typedef struct {
     double remainingTime;
     double finishTime;
     double turnaroundTime;
+    double waitingTime;
     int processorId;
 } BurstItem;
 
 struct Node {
     BurstItem pcb;
+    int index;
     struct Node *next;
 };
 
@@ -37,10 +42,72 @@ struct arg {
 };
 
 /* the function to be executed by threads (processors) */
-static void *processBurts(void *arg_ptr){
+static void *processBurst(void *arg_ptr){
     int processorId = ((struct arg *) arg_ptr)->processorId;
     struct Node* readyQueue = ((struct arg *) arg_ptr)->readyQueue;
+    int index = readyQueue->index;
+    struct timeval start, end;
+    printf("%d\n", readyQueue->pcb.pid); // to see the id of the thread IT WILL BE DELETED DONT'T PANIC
+    while(1){
+        gettimeofday(&start, NULL);
+        pthread_mutex_lock(locks[index]);
+        if(readyQueue[index - 1].next == NULL){
+            pthread_mutex_unlock(locks[index]);
+            usleep(1);
+        }
+        else{
+            struct timeval currentTime;
+            int isFinished = 0;
+            struct Node* current;
 
+
+            if(strcmp(alg, "SJF") == 0 || strcmp(alg, "FCFS") == 0)
+            {
+                if(strcmp(alg, "SJF") == 0)
+                {
+                    // current = first node
+                }
+                else
+                {
+                    // current = indexe göre retrieve
+                }
+
+                if(current->pcb.pid == -1)
+                {
+                    // curr insert to head
+                    pthread_mutex_unlock(locks[index]);
+                    pthread_exit(0);
+                }
+
+                pthread_mutex_unlock(locks[index]);
+                usleep(current->pcb.burstLength); // sleep its burst length time
+                isFinished = 1;
+            }
+            else // round robin
+            {
+                // current = first node yapcaz
+
+            }
+
+            if(isFinished)
+            {
+                // struct BurstItem bItem = current->pcb;
+                // struct timeval finishTime;
+                // gettimeofday(&finishTime, NULL);
+                // bItem->finishTime= timeval_diff_ms(&start, &finishTime);
+                // bItem->turnaroundTime = bItem->finishTime - bItem->arrivalTime;
+                // bItem->waitingTime = bItem->turnaroundTime - bItem->burstLength;
+                // bItem->remainingTime = 0;
+
+                current->next = NULL;
+
+                // insert edicez currentı
+            }
+            gettimeofday(&end, NULL);
+        }  
+    }
+
+    
 }
 
 int main(int argc, char* argv[])
@@ -60,7 +127,7 @@ int main(int argc, char* argv[])
     /* the queue selection method */
     char* qs = "RM";
     /* the scheduling algorithm */
-    char* alg = "RR";
+    alg = "RR";
     char* infile = "in.txt";
     char* outfile = "out.txt";
 
@@ -174,7 +241,7 @@ int main(int argc, char* argv[])
         else if(strcmp(sap, "S") == 0){
             t_args[tIndex].readyQueue = readyProcesses[0];
         }
-        ret = pthread_create(&(tids[tIndex]), NULL, processBurts,
+        ret = pthread_create(&(tids[tIndex]), NULL, processBurst,
                              (void *) &(t_args[tIndex]));
         
         if(ret != 0){
