@@ -67,6 +67,8 @@ int main(int argc, char* argv[])
     /* pid count */
     int pidCount = 0;
 
+    /* file pointer */
+    FILE* filePtr;
 
     for(int i = 1; i < argc; i++) {
         char* cur = argv[i];
@@ -161,6 +163,7 @@ int main(int argc, char* argv[])
     /* dynamically allocate the number of thread arguments */
     t_args = (struct arg*) malloc (N * sizeof(struct arg)); 
 
+    /*  creating threads (processors) */
     int ret;
 
     for(int tIndex = 0; tIndex < N; tIndex++){
@@ -178,6 +181,33 @@ int main(int argc, char* argv[])
             exit(1);
         }
     }
+
+    /* MAIN THREAD PROCESS READ FROM FILE SEGMENT */
+    filePtr = fopen(infile, "r");
+
+    if(filePtr == NULL)
+    {
+        exit(1);
+    }
+
+    /*information string*/
+    char inputType[64];
+    /*amount of time (ms)*/
+    int timeInput;
+
+    while(fscanf(filePtr, "%s %d", inputType, &timeInput) != EOF){
+        
+    }
+
+    fclose(filePtr);
+
+    /* joining threads after their termination */
+    for (int tIndex = 0; tIndex < N; tIndex++) {
+	    ret = pthread_join(tids[tIndex], NULL);
+		if (ret != 0) {
+			exit(1);
+		}
+	}
 
 }
 
