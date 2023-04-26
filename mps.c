@@ -455,12 +455,19 @@ int main(int argc, char* argv[])
         }
     }
 
-    for(int i = 0; i < N; i++){
-        pthread_mutex_lock(&queueMutex[i]);
-        addNodeToEndDummy(&readyProcesses[i],i);
-        pthread_mutex_unlock(&queueMutex[i]);
+    if(strcmp(sap, "M") == 0){
+        for(int i = 0; i < N; i++){
+            pthread_mutex_lock(&queueMutex[i]);
+            addNodeToEndDummy(&readyProcesses[i],i);
+            pthread_mutex_unlock(&queueMutex[i]);
+        }
     }
 
+    if(strcmp(sap, "S") == 0){
+        pthread_mutex_lock(&queueMutex[0]);
+        addNodeToEndDummy(&readyProcesses[0],0);
+        pthread_mutex_unlock(&queueMutex[0]);
+    }
     fclose(filePtr);
 
     struct Node* current = finishedProcesses;
@@ -485,4 +492,46 @@ int main(int argc, char* argv[])
 
     avgTurnaround = avgTurnaround / countForAvg;
     printf("Average turnaround time: %d", avgTurnaround);
+
+    for(int i = 0; i < N; i++){
+        free(tids[i]);
+        free(&t_args[i]);
+    }
+
+    if(strcmp(sap, "S") == 0){
+        struct Node* current = readyProcesses[0];
+        struct Node* next;
+
+        while(current != NULL){
+            next = current->next;
+            free(current);
+            current = next;
+        }
+
+        pthread_mutex_destroy(&queueMutex[0]);
+        free(queueMutex);
+    }
+
+    if(strcmp(sap, "M") == 0){
+        for(int i = 0; i < N; i++){
+            struct Node* current = readyProcesses[i];
+            struct Node* next;
+
+            while(current != NULL){
+                next = current->next;
+                free(current);
+                current = next;
+            }
+
+            pthread_mutex_destroy(&queueMutex[i]);
+        }
+        free(queueMutex);
+    }
+    
+    if(strcmp(qs,"LM") == 0){
+        free(loadNum);
+    }
+
+    exit(0);
+    return(0);
 }
