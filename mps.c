@@ -91,7 +91,7 @@ static void deleteHeadNode(struct Node** head){
 
 void static printInformation(struct Node* head, double currentTime){
     if(head == NULL){
-        printf("Error! Empty list");
+        printf("Error! Empty list\n");
     }
     
     else{
@@ -99,11 +99,28 @@ void static printInformation(struct Node* head, double currentTime){
         struct Node* now = head;
 
         while(now != NULL){
-            fprintf(out, "time = %f, cpu = %d, pid = %d, burstlen = %f, remainingtime = %f", currentTime, now->pcb.pid, now->pcb.processorId, now->pcb.burstLength, now->pcb.remainingTime);
+            fprintf(out, "time = %f, cpu = %d, pid = %d, burstlen = %f, remainingtime = %f", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
             now = now->next;
         }
 
-        printf("-------END-------\n");
+        fprintf(out, "-------END OUTMODE2-------\n");
+    }
+}
+
+void static printOutMode3(struct Node* head){
+    if(head == NULL){
+        printf("Error! Empty list\n");
+    }
+
+    else{
+        FILE* out = fopen(outfile, "w");
+        struct Node* now = head;
+
+        while(now != NULL){
+            fprintf(out, "pid = %d, remaining time = %f, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId);
+            now = now->next;
+        }
+        fprintf(out, "-------END OUTMODE3-------\n");
     }
 }
 
