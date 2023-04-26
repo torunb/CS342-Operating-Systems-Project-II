@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <time.h>
+#include <math.h>
 
 /* beginning timeval to measure the beginning time of the program */
 struct timeval tbegin;
@@ -110,16 +112,16 @@ static void *processBurst(void *arg_ptr){
                         printInformation(current, currentTime);
                     }
                     usleep(Q);
-                    current->pcb.remainingTime = current->pcb.finishTime - Q;
+                    current->pcb.remainingTime = current->pcb.remainingTime - Q;
                 }
                 deleteHeadNode(&readyQueue);
-                addNodeToEnd(&readyQueue,current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime);
+                addNodeToEnd(&readyQueue,current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime, current->pcb.burstLength, current->pcb.remainingTime);
             }
 
             if(isFinished)
             {
                 pthread_mutex_lock(&finishedProcessesMutex);
-                addNodeToEnd(&readyQueue,current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime);
+                addNodeToEnd(&readyQueue,current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime, current->pcb.burstLength, current->pcb.remainingTime);
                 pthread_mutex_unlock(&finishedProcessesMutex);
             }
         }  
@@ -141,11 +143,13 @@ static int findSmallestIntPos(int* intArr, int numOfElements){
 }
 
 /*function to add a new node to queue linked list*/
-static void addNodeToEnd(struct Node** head, int pid, int processorId, double arrivalTime){
+static void addNodeToEnd(struct Node** head, int pid, int processorId, double arrivalTime, int burstLength, int remainingTime){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
     nodeNew->pcb.pid = pid;
     nodeNew->pcb.processorId = processorId;
     nodeNew->pcb.arrivalTime = arrivalTime;
+    nodeNew->pcb.burstLength = burstLength;
+    nodeNew->pcb.remainingTime = remainingTime;
     nodeNew->next = NULL;
 
     struct Node* last = *head;
@@ -186,11 +190,13 @@ static void addNodeToEndDummy(struct Node** head, int processorId){
 }
 
 /* function that adds according to SJF */
-static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, double arrivalTime){
+static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, double arrivalTime, int burstLength, int remainingTime){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
     nodeNew->pcb.pid = pid;
     nodeNew->pcb.processorId = processorId;
     nodeNew->pcb.arrivalTime = arrivalTime;
+    nodeNew->pcb.burstLength = burstLength;
+    nodeNew->pcb.remainingTime = remainingTime;
     nodeNew->next = NULL;
 
     struct Node* last = *head;
@@ -260,7 +266,7 @@ int main(int argc, char* argv[])
     struct arg* t_args;
     /* the number of processors */
     int N = 2;
-    int T=200, T1=10, T2=1000, L=100, L1=10, L2=500;
+    int T=200, T1=10, T2=1000, L=100, L1=10, L2=500, pc=10;
     outmode = 1;
     /* the scheduling approach S or M */
     char* sap = "M";
@@ -283,6 +289,14 @@ int main(int argc, char* argv[])
     /* the turn number for queues for RM */
     int queueTurn = 0;
 
+    /* check if -i specified */
+    int isISpecified = 0;
+
+    /* check if -r specified */
+    int isRSpecified = 0;
+
+    time_t t;
+
     for(int i = 1; i < argc; i++) {
         char* cur = argv[i];
         printf("cur=> %s\n", cur);
@@ -300,6 +314,7 @@ int main(int argc, char* argv[])
         }
         else if(strcmp(cur, "-i") == 0) {
             infile = argv[++i];
+            isISpecified = 1;
         }
         else if(strcmp(cur, "-m") == 0) {
             outmode = atoi(argv[++i]);
@@ -310,6 +325,8 @@ int main(int argc, char* argv[])
         else if(strcmp(cur, "-r") == 0) {
             T=atoi(argv[++i]); T1=atoi(argv[++i]); T2=atoi(argv[++i]);
             L=atoi(argv[++i]); L1=atoi(argv[++i]); L2=atoi(argv[++i]);
+            pc=atoi(argv[++i]);
+            isRSpecified = 1;
         }
         else {
             printf("[-] Ignoring the unknown flag/argument: %s", cur);
@@ -414,18 +431,75 @@ int main(int argc, char* argv[])
     /*amount of time (ms)*/
     int timeInput;
 
-    while(fscanf(filePtr, "%s %d", inputType, &timeInput) != EOF){
-        if(strcmp(inputType, "PL") == 0){
+    if(isISpecified && !isRSpecified){
+        while(fscanf(filePtr, "%s %d", inputType, &timeInput) != EOF){
+            if(strcmp(inputType, "PL") == 0){
+                if(strcmp(qs, "RM") == 0){
+                    pthread_mutex_lock(&queueMutex[queueTurn % N]);
+                    gettimeofday(&tarrival, 0);
+                    double arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
+                    if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                        addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput);
+                    }
+
+                    if(strcmp(alg,"SJF") == 0){
+                        addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput);
+                    }
+                    queueTurn++;
+                    pidCount++;
+                    pthread_mutex_unlock(&queueMutex[queueTurn % N]);
+                }
+                if(strcmp(qs,"LM") == 0){
+                    int smallestIntPos = findSmallestIntPos(loadNum, N);
+                    pthread_mutex_lock(&queueMutex[smallestIntPos]);
+                    gettimeofday(&tarrival, 0);
+                    double arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
+                    if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                        addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput);
+                    }
+
+                    if(strcmp(alg,"SJF") == 0){
+                        addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput);
+                    }
+                    pidCount++;
+                    pthread_mutex_unlock(&queueMutex[smallestIntPos]);
+                    loadNum[smallestIntPos] = loadNum[smallestIntPos] + 1;
+                }
+            }
+
+            if(strcmp(inputType, "IAT") == 0){
+                //usleep suspends execution for x microseconds
+                usleep(timeInput * 1000);
+            }
+        }
+
+        fclose(filePtr);
+    }
+    else {
+        srand((unsigned) time(&t));
+
+        for(int i = 0; i < pc; i++){
+            double rateParameter = 1.0/L;
+            double u, x;
+            int num;
+            do {
+                u = (double)rand() / (double)RAND_MAX;
+                x = (-log(1-u))/rateParameter;
+
+                num = (int)round(x);
+            } while(num < L1 || num > L2);
+
+            //burst process
             if(strcmp(qs, "RM") == 0){
                 pthread_mutex_lock(&queueMutex[queueTurn % N]);
                 gettimeofday(&tarrival, 0);
                 double arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime);
+                    addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime);
+                    addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput);
                 }
                 queueTurn++;
                 pidCount++;
@@ -437,21 +511,27 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 double arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime);
+                    addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime);
+                    addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput);
                 }
                 pidCount++;
                 pthread_mutex_unlock(&queueMutex[smallestIntPos]);
                 loadNum[smallestIntPos] = loadNum[smallestIntPos] + 1;
             }
-        }
 
-        if(strcmp(inputType, "IAT") == 0){
-            //usleep suspends execution for x microseconds
-            usleep(timeInput * 1000);
+            //iat process
+            rateParameter = 1.0/T;
+            do {
+                u = (double)rand() / (double)RAND_MAX;
+                x = (-log(1-u))/rateParameter;
+
+                num = (int)round(x);
+            } while(num < T1 || num > T2);
+
+            usleep(1000 * num);
         }
     }
 
@@ -468,7 +548,6 @@ int main(int argc, char* argv[])
         addNodeToEndDummy(&readyProcesses[0],0);
         pthread_mutex_unlock(&queueMutex[0]);
     }
-    fclose(filePtr);
 
     struct Node* current = finishedProcesses;
 
