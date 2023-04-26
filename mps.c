@@ -20,8 +20,6 @@ int outmode; // OUTMODE
 
 /*
 *OUTMODE 3 BAKILCAK
-*
-*
 */
 
 struct Node** readyProcesses;
@@ -260,7 +258,7 @@ static void deleteHeadNode(struct Node** head){
     return;
 }
 
-static void printInformation(struct Node* head, double currentTime){
+void printInformation(struct Node* head, double currentTime){
     if(head == NULL){
         printf("Error! Empty list");
     }
