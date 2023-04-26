@@ -28,7 +28,6 @@ typedef struct {
 
 struct Node {
     BurstItem pcb;
-    int index;
     struct Node *next;
 };
 
@@ -43,13 +42,14 @@ struct arg {
 static void *processBurst(void *arg_ptr){
     int processorId = ((struct arg *) arg_ptr)->processorId;
     struct Node* readyQueue = ((struct arg *) arg_ptr)->readyQueue;
-    int index = readyQueue->index;
+    struct Node** head = &readyQueue;
+    int index = readyQueue->pcb.processorId;
     struct timeval start, end;
     printf("%d\n", readyQueue->pcb.pid); // to see the id of the thread IT WILL BE DELETED DONT'T PANIC
-    while(1){
+    while(*head == NULL || readyQueue->pcb.pid != -1){
         gettimeofday(&start, NULL);
         pthread_mutex_lock(&queueMutex[index]);
-        if(readyQueue[index - 1].next == NULL){
+        if(*head == NULL){
             pthread_mutex_unlock(&queueMutex[index]);
             usleep(1);
         }
@@ -61,29 +61,13 @@ static void *processBurst(void *arg_ptr){
 
             if(strcmp(alg, "SJF") == 0 || strcmp(alg, "FCFS") == 0)
             {
-                if(strcmp(alg, "SJF") == 0)
-                {
-                    // current = first node
-                }
-                else
-                {
-                    // current = indexe göre retrieve
-                }
-
-                if(current->pcb.pid == -1)
-                {
-                    // curr insert to head
-                    pthread_mutex_unlock(&queueMutex[index]);
-                    pthread_exit(0);
-                }
-
+                current = 
                 pthread_mutex_unlock(&queueMutex[index]);
                 usleep(current->pcb.burstLength); // sleep its burst length time
                 isFinished = 1;
             }
-            else // round robin
-            {
-                // current = first node yapcaz
+
+            if(strcmp(alg, "RR") == 0){
 
             }
 
@@ -104,8 +88,7 @@ static void *processBurst(void *arg_ptr){
             gettimeofday(&end, NULL);
         }  
     }
-
-    
+    pthread_exit(NULL); 
 }
 
 /*function to find the smallest integer position in an array*/
@@ -144,11 +127,10 @@ static void addNodeToEnd(struct Node** head, int pid, int processorId){
 }
 
 /*function to add a dummyNode to queue linked list*/
-static void addNodeToEndDummy(struct Node** head, int pid, int processorId){
+static void addNodeToEndDummy(struct Node** head, int processorId){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
-    nodeNew->pcb.pid = pid;
+    nodeNew->pcb.pid = -1;
     nodeNew->pcb.processorId = processorId;
-    nodeNew->pcb.burstLength = -1;
     nodeNew->next = NULL;
 
     struct Node* last = *head;
@@ -195,6 +177,20 @@ static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId){
     struct Node* temp = last->next;
     last->next = nodeNew;
     nodeNew->next = temp;
+    return;
+}
+
+/* function to delete the head node in linked list */
+static void deleteHeadNode(struct Node** head){
+    struct Node* current = *head;
+
+    if(*head = NULL){
+        return;
+    }
+
+    *head = current->next;
+
+    free(current);
     return;
 }
 
@@ -362,6 +358,7 @@ int main(int argc, char* argv[])
     while(fscanf(filePtr, "%s %d", inputType, &timeInput) != EOF){
         if(strcmp(inputType, "PL") == 0){
             if(strcmp(qs, "RM") == 0){
+                pthread_mutex_lock(&queueMutex[queueTurn % N]);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
                     addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N);
                 }
@@ -371,9 +368,11 @@ int main(int argc, char* argv[])
                 }
                 queueTurn++;
                 pidCount++;
+                pthread_mutex_unlock(&queueMutex[queueTurn % N]);
             }
             if(strcmp(qs,"LM") == 0){
                 int smallestIntPos = findSmallestIntPos(loadNum, N);
+                pthread_mutex_lock(&queueMutex[smallestIntPos]);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
                     addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos);
                 }
@@ -382,17 +381,21 @@ int main(int argc, char* argv[])
                     addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos);
                 }
                 pidCount++;
+                pthread_mutex_unlock(&queueMutex[smallestIntPos]);
                 loadNum[smallestIntPos] = loadNum[smallestIntPos] + 1;
             }
         }
 
         if(strcmp(inputType, "IAT") == 0){
-            usleep(timeInput);
+            //usleep suspends execution for x microseconds
+            usleep(timeInput * 1000);
         }
     }
 
     for(int i = 0; i < N; i++){
-        addNodeToEndDummy(&readyProcesses[i],pidCount,i);
+        pthread_mutex_lock(&queueMutex[i]);
+        addNodeToEndDummy(&readyProcesses[i],i);
+        pthread_mutex_unlock(&queueMutex[i]);
     }
 
     fclose(filePtr);
