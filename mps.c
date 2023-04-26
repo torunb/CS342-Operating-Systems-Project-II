@@ -16,6 +16,7 @@ int Q = 20;
 pthread_mutex_t *queueMutex;
 pthread_mutex_t finishedProcessesMutex;
 char* alg;
+int outmode; // OUTMODE
 
 struct Node** readyProcesses;
 int readyQueueNum;
@@ -50,6 +51,8 @@ static void *processBurst(void *arg_ptr){
     struct Node* readyQueue = ((struct arg *) arg_ptr)->readyQueue;
     struct Node** head = &readyQueue;
     int index = readyQueue->pcb.processorId;
+    struct timeval start;
+    struct timeval now;
     struct timeval finishTime;
     printf("%d\n", readyQueue->pcb.pid); // to see the id of the thread IT WILL BE DELETED DONT'T PANIC
     while(*head == NULL || readyQueue->pcb.pid != -1){
@@ -59,6 +62,7 @@ static void *processBurst(void *arg_ptr){
             usleep(1000);
         }
         else{
+            gettimeofday(&start, NULL);
             int isFinished = 0;
             struct Node* current;
 
@@ -67,6 +71,13 @@ static void *processBurst(void *arg_ptr){
                 current = readyQueue;
                 deleteHeadNode(&readyQueue);
                 pthread_mutex_unlock(&queueMutex[index]);
+
+                if(outmode == 2){
+                    gettimeofday(&now, NULL);
+                    double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                    printInformation(current, currentTime);
+                }
+
                 usleep(current->pcb.burstLength * 1000); // sleep its burst length time
                 gettimeofday(&finishTime, 0);
                 current->pcb.finishTime = 1000 * (finishTime.tv_sec - tbegin.tv_sec) + 0.001 * (finishTime.tv_usec - tbegin.tv_usec);
@@ -79,6 +90,11 @@ static void *processBurst(void *arg_ptr){
             if(strcmp(alg, "RR") == 0){
                 current = readyQueue;
                 if(current->pcb.remainingTime < Q){
+                    if(outmode == 2){
+                        gettimeofday(&now, NULL);
+                        double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                        printInformation(current, currentTime);
+                    }
                     usleep(current->pcb.remainingTime * 1000);
                     gettimeofday(&finishTime, 0);
                     current->pcb.finishTime = 1000 * (finishTime.tv_sec - tbegin.tv_sec) + 0.001 * (finishTime.tv_usec - tbegin.tv_usec);
@@ -88,6 +104,11 @@ static void *processBurst(void *arg_ptr){
                     isFinished = 1;
                 }
                 else {
+                    if(outmode == 2){
+                        gettimeofday(&now, NULL);
+                        double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                        printInformation(current, currentTime);
+                    }
                     usleep(Q);
                     current->pcb.remainingTime = current->pcb.finishTime - Q;
                 }
@@ -211,6 +232,23 @@ static void deleteHeadNode(struct Node** head){
     return;
 }
 
+static void printInformation(struct Node* head, double currentTime){
+    if(head == NULL){
+        printf("Error! Empty list");
+    }
+    
+    else{
+        struct Node* now = head;
+
+        while(now != NULL){
+            printf("time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d", currentTime, now->pcb.processorId, now->pcb.burstLength, now->pcb.remainingTime);
+            now = now->next;
+        }
+
+        printf("-------END-------\n");
+    }
+}
+
 int main(int argc, char* argv[])
 {
     /* get the start time of the execution */
@@ -223,7 +261,7 @@ int main(int argc, char* argv[])
     /* the number of processors */
     int N = 2;
     int T=200, T1=10, T2=1000, L=100, L1=10, L2=500;
-    int outmode = 1;
+    outmode = 1;
     /* the scheduling approach S or M */
     char* sap = "M";
     /* the queue selection method */
@@ -425,6 +463,8 @@ int main(int argc, char* argv[])
 
     fclose(filePtr);
 
+    struct Node* current = finishedProcesses;
+
     /* joining threads after their termination */
     for (int tIndex = 0; tIndex < N; tIndex++) {
 	    ret = pthread_join(tids[tIndex], NULL);
@@ -433,4 +473,16 @@ int main(int argc, char* argv[])
 		}
 	}
 
+    printf("%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
+    double avgTurnaround;
+    int countForAvg;
+    while(current != NULL){
+        printf("%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", current->pcb.pid, current->pcb.processorId, current->pcb.burstLength, current->pcb.arrivalTime, current->pcb.finishTime, current->pcb.waitingTime, current->pcb.turnaroundTime);
+        avgTurnaround = avgTurnaround + current->pcb.turnaroundTime;
+        countForAvg++;
+        current = current->next;
+    }
+
+    avgTurnaround = avgTurnaround / countForAvg;
+    printf("Average turnaround time: %d", avgTurnaround);
 }
