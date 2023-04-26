@@ -55,11 +55,13 @@ struct arg {
 };
 
 /*function to add a new node to queue linked list*/
-static void addNodeToEnd(struct Node** head, int pid, int processorId, double arrivalTime){
+static void addNodeToEnd(struct Node** head, int pid, int processorId, double arrivalTime, int burstLength, int remainingTime){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
     nodeNew->pcb.pid = pid;
     nodeNew->pcb.processorId = processorId;
     nodeNew->pcb.arrivalTime = arrivalTime;
+    nodeNew->pcb.burstLength = burstLength;
+    nodeNew->pcb.remainingTime = remainingTime;
     nodeNew->next = NULL;
 
     struct Node* last = *head;
@@ -74,6 +76,63 @@ static void addNodeToEnd(struct Node** head, int pid, int processorId, double ar
     }
 
     last->next = nodeNew;
+    return;
+}
+
+/*function to add a dummyNode to queue linked list*/
+static void addNodeToEndDummy(struct Node** head, int processorId){
+    struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
+    nodeNew->pcb.pid = -1;
+    nodeNew->pcb.processorId = processorId;
+    nodeNew->next = NULL;
+
+    struct Node* last = *head;
+
+    if(*head == NULL){
+        *head = nodeNew;
+        return;
+    }
+
+    while (last->next != NULL){
+        last = last->next;
+    }
+
+    last->next = nodeNew;
+    return;
+}
+
+/* function that adds according to SJF */
+static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, double arrivalTime, int burstLength, int remainingTime){
+    struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
+    nodeNew->pcb.pid = pid;
+    nodeNew->pcb.processorId = processorId;
+    nodeNew->pcb.arrivalTime = arrivalTime;
+    nodeNew->pcb.burstLength = burstLength;
+    nodeNew->pcb.remainingTime = remainingTime;
+    nodeNew->next = NULL;
+
+    struct Node* last = *head;
+
+    if(*head == NULL){
+        *head = nodeNew;
+        return;
+    }
+
+    if(last->pcb.burstLength > nodeNew->pcb.burstLength){
+        *head = nodeNew;
+        nodeNew->next = last;
+        return;
+    }
+
+    while (last->next != NULL && 
+           last->next->pcb.burstLength <= nodeNew->pcb.burstLength)
+    {
+        last = last->next;
+    }
+
+    struct Node* temp = last->next;
+    last->next = nodeNew;
+    nodeNew->next = temp;
     return;
 }
 
@@ -241,88 +300,6 @@ static int findSmallestIntPos(int* intArr, int numOfElements){
         }
     }
     return position;
-}
-
-/*function to add a new node to queue linked list*/
-static void addNodeToEnd(struct Node** head, int pid, int processorId, double arrivalTime, int burstLength, int remainingTime){
-    struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
-    nodeNew->pcb.pid = pid;
-    nodeNew->pcb.processorId = processorId;
-    nodeNew->pcb.arrivalTime = arrivalTime;
-    nodeNew->pcb.burstLength = burstLength;
-    nodeNew->pcb.remainingTime = remainingTime;
-    nodeNew->next = NULL;
-
-    struct Node* last = *head;
-
-    if(*head == NULL){
-        *head = nodeNew;
-        return;
-    }
-
-    while (last->next != NULL){
-        last = last->next;
-    }
-
-    last->next = nodeNew;
-    return;
-}
-
-/*function to add a dummyNode to queue linked list*/
-static void addNodeToEndDummy(struct Node** head, int processorId){
-    struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
-    nodeNew->pcb.pid = -1;
-    nodeNew->pcb.processorId = processorId;
-    nodeNew->next = NULL;
-
-    struct Node* last = *head;
-
-    if(*head == NULL){
-        *head = nodeNew;
-        return;
-    }
-
-    while (last->next != NULL){
-        last = last->next;
-    }
-
-    last->next = nodeNew;
-    return;
-}
-
-/* function that adds according to SJF */
-static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, double arrivalTime, int burstLength, int remainingTime){
-    struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
-    nodeNew->pcb.pid = pid;
-    nodeNew->pcb.processorId = processorId;
-    nodeNew->pcb.arrivalTime = arrivalTime;
-    nodeNew->pcb.burstLength = burstLength;
-    nodeNew->pcb.remainingTime = remainingTime;
-    nodeNew->next = NULL;
-
-    struct Node* last = *head;
-
-    if(*head == NULL){
-        *head = nodeNew;
-        return;
-    }
-
-    if(last->pcb.burstLength > nodeNew->pcb.burstLength){
-        *head = nodeNew;
-        nodeNew->next = last;
-        return;
-    }
-
-    while (last->next != NULL && 
-           last->next->pcb.burstLength <= nodeNew->pcb.burstLength)
-    {
-        last = last->next;
-    }
-
-    struct Node* temp = last->next;
-    last->next = nodeNew;
-    nodeNew->next = temp;
-    return;
 }
 
 int main(int argc, char* argv[])
