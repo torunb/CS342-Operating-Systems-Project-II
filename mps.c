@@ -10,6 +10,9 @@
 /* beginning timeval to measure the beginning time of the program */
 struct timeval tbegin;
 
+/* the time quantum (ms) */
+int Q = 20;
+
 pthread_mutex_t *queueMutex;
 pthread_mutex_t finishedProcessesMutex;
 char* alg;
@@ -75,6 +78,19 @@ static void *processBurst(void *arg_ptr){
 
             if(strcmp(alg, "RR") == 0){
                 current = readyQueue;
+                if(current->pcb.remainingTime < Q){
+                    usleep(current->pcb.remainingTime * 1000);
+                    gettimeofday(&finishTime, 0);
+                    current->pcb.finishTime = 1000 * (finishTime.tv_sec - tbegin.tv_sec) + 0.001 * (finishTime.tv_usec - tbegin.tv_usec);
+                    current->pcb.turnaroundTime = current->pcb.finishTime - current->pcb.arrivalTime;
+                    current->pcb.waitingTime = current->pcb.turnaroundTime - current->pcb.burstLength;
+                    current->pcb.remainingTime = 0; 
+                    isFinished = 1;
+                }
+                else {
+                    usleep(Q);
+                    current->pcb.remainingTime = current->pcb.finishTime - Q;
+                }
                 deleteHeadNode(&readyQueue);
                 addNodeToEnd(&readyQueue,current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime);
             }
@@ -93,7 +109,6 @@ static void *processBurst(void *arg_ptr){
 
                 // insert edicez currentı
             }
-            gettimeofday(&end, NULL);
         }  
     }
     pthread_exit(NULL); 
@@ -215,8 +230,6 @@ int main(int argc, char* argv[])
     struct arg* t_args;
     /* the number of processors */
     int N = 2;
-    /* the time quantum (ms) */
-    int Q = 20;
     int T=200, T1=10, T2=1000, L=100, L1=10, L2=500;
     int outmode = 1;
     /* the scheduling approach S or M */
