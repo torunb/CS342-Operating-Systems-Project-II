@@ -97,17 +97,9 @@ static void *processBurst(void *arg_ptr){
 
             if(isFinished)
             {
-                // struct BurstItem bItem = current->pcb;
-                // struct timeval finishTime;
-                // gettimeofday(&finishTime, NULL);
-                // bItem->finishTime= timeval_diff_ms(&start, &finishTime);
-                // bItem->turnaroundTime = bItem->finishTime - bItem->arrivalTime;
-                // bItem->waitingTime = bItem->turnaroundTime - bItem->burstLength;
-                // bItem->remainingTime = 0;
-
-                current->next = NULL;
-
-                // insert edicez currentı
+                pthread_mutex_lock(&finishedProcessesMutex);
+                addNodeToEnd(&readyQueue,current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime);
+                pthread_mutex_unlock(&finishedProcessesMutex);
             }
         }  
     }
