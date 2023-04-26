@@ -16,7 +16,13 @@ int Q = 20;
 pthread_mutex_t *queueMutex;
 pthread_mutex_t finishedProcessesMutex;
 char* alg;
-int outmode; // OUTMODE
+int outmode; // OUTMODE 
+
+/*
+*OUTMODE 3 BAKILCAK
+*
+*
+*/
 
 struct Node** readyProcesses;
 int readyQueueNum;
@@ -73,6 +79,14 @@ static void *processBurst(void *arg_ptr){
                 pthread_mutex_unlock(&queueMutex[index]);
 
                 if(outmode == 2){
+                    printf("OUTMODE 2\n");
+                    gettimeofday(&now, NULL);
+                    double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                    printInformation(current, currentTime);
+                }
+
+                else if(outmode == 3){
+                    printf("OUTMODE 3\n");
                     gettimeofday(&now, NULL);
                     double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
                     printInformation(current, currentTime);
@@ -91,6 +105,13 @@ static void *processBurst(void *arg_ptr){
                 current = readyQueue;
                 if(current->pcb.remainingTime < Q){
                     if(outmode == 2){
+                        printf("OUTMODE 2\n");
+                        gettimeofday(&now, NULL);
+                        double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                        printInformation(current, currentTime);
+                    }
+                    else if(outmode == 3){
+                        printf("OUTMODE 3\n");
                         gettimeofday(&now, NULL);
                         double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
                         printInformation(current, currentTime);
@@ -105,6 +126,13 @@ static void *processBurst(void *arg_ptr){
                 }
                 else {
                     if(outmode == 2){
+                        printf("OUTMODE 2\n");
+                        gettimeofday(&now, NULL);
+                        double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                        printInformation(current, currentTime);
+                    }
+                    else if(outmode == 3){
+                        printf("OUTMODE 3\n");
                         gettimeofday(&now, NULL);
                         double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
                         printInformation(current, currentTime);
