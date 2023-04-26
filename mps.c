@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -17,8 +16,16 @@ int Q = 20;
 
 pthread_mutex_t *queueMutex;
 pthread_mutex_t finishedProcessesMutex;
+
 char* alg;
-int outmode; // OUTMODE
+char* infile;
+char* outfile;
+
+int outmode; // OUTMODE 
+
+/*
+*OUTMODE 3 BAKILCAK
+*/
 
 struct Node** readyProcesses;
 int readyQueueNum;
@@ -46,6 +53,78 @@ struct arg {
     /* the process ready queue */
     struct Node* readyQueue;
 };
+
+/*function to add a new node to queue linked list*/
+static void addNodeToEnd(struct Node** head, int pid, int processorId, double arrivalTime){
+    struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
+    nodeNew->pcb.pid = pid;
+    nodeNew->pcb.processorId = processorId;
+    nodeNew->pcb.arrivalTime = arrivalTime;
+    nodeNew->next = NULL;
+
+    struct Node* last = *head;
+
+    if(*head == NULL){
+        *head = nodeNew;
+        return;
+    }
+
+    while (last->next != NULL){
+        last = last->next;
+    }
+
+    last->next = nodeNew;
+    return;
+}
+
+/* function to delete the head node in linked list */
+static void deleteHeadNode(struct Node** head){
+    struct Node* current = *head;
+
+    if(*head = NULL){
+        return;
+    }
+
+    *head = current->next;
+
+    free(current);
+    return;
+}
+
+void static printInformation(struct Node* head, double currentTime){
+    if(head == NULL){
+        printf("Error! Empty list\n");
+    }
+    
+    else{
+        FILE* out = fopen(outfile, "w");
+        struct Node* now = head;
+
+        while(now != NULL){
+            fprintf(out, "time = %f, cpu = %d, pid = %d, burstlen = %f, remainingtime = %f", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
+            now = now->next;
+        }
+
+        fprintf(out, "-------END OUTMODE2-------\n");
+    }
+}
+
+void static printOutMode3(struct Node* head){
+    if(head == NULL){
+        printf("Error! Empty list\n");
+    }
+
+    else{
+        FILE* out = fopen(outfile, "w");
+        struct Node* now = head;
+
+        while(now != NULL){
+            fprintf(out, "pid = %d, remaining time = %f, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId);
+            now = now->next;
+        }
+        fprintf(out, "-------END OUTMODE3-------\n");
+    }
+}
 
 /* the function to be executed by threads (processors) */
 static void *processBurst(void *arg_ptr){
@@ -75,6 +154,14 @@ static void *processBurst(void *arg_ptr){
                 pthread_mutex_unlock(&queueMutex[index]);
 
                 if(outmode == 2){
+                    printf("OUTMODE 2\n");
+                    gettimeofday(&now, NULL);
+                    double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                    printInformation(current, currentTime);
+                }
+
+                else if(outmode == 3){
+                    printf("OUTMODE 3\n");
                     gettimeofday(&now, NULL);
                     double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
                     printInformation(current, currentTime);
@@ -93,6 +180,13 @@ static void *processBurst(void *arg_ptr){
                 current = readyQueue;
                 if(current->pcb.remainingTime < Q){
                     if(outmode == 2){
+                        printf("OUTMODE 2\n");
+                        gettimeofday(&now, NULL);
+                        double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                        printInformation(current, currentTime);
+                    }
+                    else if(outmode == 3){
+                        printf("OUTMODE 3\n");
                         gettimeofday(&now, NULL);
                         double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
                         printInformation(current, currentTime);
@@ -107,6 +201,13 @@ static void *processBurst(void *arg_ptr){
                 }
                 else {
                     if(outmode == 2){
+                        printf("OUTMODE 2\n");
+                        gettimeofday(&now, NULL);
+                        double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                        printInformation(current, currentTime);
+                    }
+                    else if(outmode == 3){
+                        printf("OUTMODE 3\n");
                         gettimeofday(&now, NULL);
                         double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
                         printInformation(current, currentTime);
@@ -224,37 +325,6 @@ static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, 
     return;
 }
 
-/* function to delete the head node in linked list */
-static void deleteHeadNode(struct Node** head){
-    struct Node* current = *head;
-
-    if(*head = NULL){
-        return;
-    }
-
-    *head = current->next;
-
-    free(current);
-    return;
-}
-
-static void printInformation(struct Node* head, double currentTime){
-    if(head == NULL){
-        printf("Error! Empty list");
-    }
-    
-    else{
-        struct Node* now = head;
-
-        while(now != NULL){
-            printf("time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d", currentTime, now->pcb.processorId, now->pcb.burstLength, now->pcb.remainingTime);
-            now = now->next;
-        }
-
-        printf("-------END-------\n");
-    }
-}
-
 int main(int argc, char* argv[])
 {
     /* get the start time of the execution */
@@ -274,8 +344,8 @@ int main(int argc, char* argv[])
     char* qs = "RM";
     /* the scheduling algorithm */
     alg = "RR";
-    char* infile = "in.txt";
-    char* outfile = "out.txt";
+    infile = "in.txt";
+    outfile = "out.txt";
 
     /* pid count */
     int pidCount = 0;
@@ -559,21 +629,23 @@ int main(int argc, char* argv[])
 		}
 	}
 
-    printf("%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
+    FILE* out = fopen(outfile, "w");
+
+    fprintf(out, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
     double avgTurnaround;
     int countForAvg;
     while(current != NULL){
-        printf("%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", current->pcb.pid, current->pcb.processorId, current->pcb.burstLength, current->pcb.arrivalTime, current->pcb.finishTime, current->pcb.waitingTime, current->pcb.turnaroundTime);
+        fprintf(out, "%-10d %-10d %-10f %-10f %-10f %-12f %-10f\n", current->pcb.pid, current->pcb.processorId, current->pcb.burstLength, current->pcb.arrivalTime, current->pcb.finishTime, current->pcb.waitingTime, current->pcb.turnaroundTime);
         avgTurnaround = avgTurnaround + current->pcb.turnaroundTime;
         countForAvg++;
         current = current->next;
     }
 
     avgTurnaround = avgTurnaround / countForAvg;
-    printf("Average turnaround time: %d", avgTurnaround);
+    fprintf(out, "Average turnaround time: %f", avgTurnaround);
 
     for(int i = 0; i < N; i++){
-        free(tids[i]);
+        free(&tids[i]);
         free(&t_args[i]);
     }
 
