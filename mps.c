@@ -199,7 +199,7 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
                 if(strlen(outfile) == 0){
                     printf("pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
                 }
-                else if(strlen(outmode) > 0){
+                else if(strlen(outfile) > 0){
                     fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
                 }
             }
@@ -207,7 +207,7 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
                 if(strlen(outfile) == 0){
                     printf("pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
                 }
-                else if(strlen(outmode) > 0){
+                else if(strlen(outfile) > 0){
                     fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
                 }
             }
