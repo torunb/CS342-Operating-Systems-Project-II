@@ -54,12 +54,13 @@ struct arg {
     /* the processor's id */
     int processorId;
     /* the process ready queue */
-    struct Node* readyQueue;
+    struct Node** readyQueue;
 };
 
 /*function to add a new node to queue linked list*/
 static void addNodeToEnd(struct Node** head, int pid, int processorId, int arrivalTime, int burstLength, int remainingTime){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
+    printf("pid = %d\n", pid);
     nodeNew->pcb.pid = pid;
     nodeNew->pcb.processorId = processorId;
     nodeNew->pcb.arrivalTime = arrivalTime;
@@ -79,7 +80,6 @@ static void addNodeToEnd(struct Node** head, int pid, int processorId, int arriv
     }
 
     last->next = nodeNew;
-    printf("The new node added to the queue\n");
     return;
 }
 
@@ -102,7 +102,6 @@ static void addNodeToEndDummy(struct Node** head, int processorId){
     }
 
     last->next = nodeNew;
-    printf("The dummy node added to the queue\n");
     return;
 }
 
@@ -138,7 +137,6 @@ static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, 
     struct Node* temp = last->next;
     last->next = nodeNew;
     nodeNew->next = temp;
-    printf("The new node added to the queue(SJF)\n");
     return;
 }
 
@@ -197,33 +195,31 @@ void static printOutMode3(struct Node* head, int stayFor, char* alg){
 
 /* the function to be executed by threads (processors) */
 static void *processBurst(void *arg_ptr){
-    printf("The process funct starts \n");
     int processorId = ((struct arg *) arg_ptr)->processorId;
-    struct Node* readyQueue = ((struct arg *) arg_ptr)->readyQueue;
-    struct Node** head = &readyQueue;
+    struct Node** readyQueue = ((struct arg *) arg_ptr)->readyQueue;
     int isDummyDetected = 0;
     struct timeval now;
     struct timeval finishTime;
-    while(*head == NULL || !isDummyDetected || loadNum[processorId] < 2){
+    while(*readyQueue == NULL || !isDummyDetected || loadNum[processorId] < 2){
         pthread_mutex_lock(&queueMutex[processorId]);
-        if(*head == NULL){
+        if(*readyQueue == NULL){
             pthread_mutex_unlock(&queueMutex[processorId]);
             usleep(1000);
         }
-        else if(readyQueue->pcb.pid == -1){
+        else if((*readyQueue)->pcb.pid == -1){
             printf("dummy detected\n");
             isDummyDetected = 1;
         }
         else{
-            printf("%d\n",readyQueue->pcb.pid);
-            int index = readyQueue->pcb.processorId;
+            //printf("Process starts, processor id = %d, pid = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid);
+            int index = (*readyQueue)->pcb.processorId;
             int isFinished = 0;
             struct Node* current;
 
             if(strcmp(alg, "SJF") == 0 || strcmp(alg, "FCFS") == 0)
             {
-                current = readyQueue;
-                deleteHeadNode(&readyQueue);
+                current = *readyQueue;
+                deleteHeadNode(readyQueue);
                 pthread_mutex_unlock(&queueMutex[index]);
 
                 if(outmode == 2){
@@ -248,7 +244,7 @@ static void *processBurst(void *arg_ptr){
             }
 
             if(strcmp(alg, "RR") == 0){
-                current = readyQueue;
+                current = *readyQueue;
                 if(current->pcb.remainingTime < Q){
                     if(outmode == 2){
                         printf("OUTMODE 2\n");
@@ -292,14 +288,14 @@ static void *processBurst(void *arg_ptr){
                     usleep(Q);
                     current->pcb.remainingTime = current->pcb.remainingTime - Q;
                 }
-                deleteHeadNode(&readyQueue);
-                addNodeToEnd(&readyQueue,current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime, current->pcb.burstLength, current->pcb.remainingTime);
+                deleteHeadNode(readyQueue);
+                addNodeToEnd(readyQueue, current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime, current->pcb.burstLength, current->pcb.remainingTime);
             }
 
             if(isFinished)
             {
                 pthread_mutex_lock(&finishedProcessesMutex);
-                addNodeToEnd(&readyQueue,current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime, current->pcb.burstLength, current->pcb.remainingTime);
+                addNodeToEnd(readyQueue,current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime, current->pcb.burstLength, current->pcb.remainingTime);
                 pthread_mutex_unlock(&finishedProcessesMutex);
             }
         }  
@@ -413,8 +409,6 @@ int main(int argc, char* argv[])
         Q = 0;
     }
 
-    printf("Successfully completed taking input part\n");
-
 
     /* After everything is set, the process can begin...*/
 
@@ -425,20 +419,15 @@ int main(int argc, char* argv[])
         /* initialize every mutex lock of queue(s) inside for loop */
         for (int i = 0; i < N; i++){
             pthread_mutex_init(&queueMutex[i], NULL);
-            printf("Memory address of the newly created queue mutex: %p \n", &queueMutex[i]);
         }        
     }
     else if(strcmp(sap, "S") == 0){
         queueMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
         pthread_mutex_init(&queueMutex[0], NULL);
-        printf("Memory address of the newly created queue mutex: %p\n", &queueMutex[0]);
     }
 
     /* initialize the finished processes mutex lock*/
     pthread_mutex_init(&finishedProcessesMutex, NULL);
-    printf("Memory address of the newly created finished mutex: %p\n", &finishedProcessesMutex);
-
-    printf("mutex locks are initialized successfully\n");
     
     /* QUEUE(S) CREATION */
     if(strcmp(sap, "M") == 0){
@@ -469,10 +458,10 @@ int main(int argc, char* argv[])
     for(int tIndex = 0; tIndex < N; tIndex++){
         t_args[tIndex].processorId = tIndex;
         if(strcmp(sap, "M") == 0){
-            t_args[tIndex].readyQueue = readyProcesses[tIndex];
+            t_args[tIndex].readyQueue = &readyProcesses[tIndex];
         }
         else if(strcmp(sap, "S") == 0){
-            t_args[tIndex].readyQueue = readyProcesses[0];
+            t_args[tIndex].readyQueue = &readyProcesses[0];
         }
         ret = pthread_create(&(tids[tIndex]), NULL, processBurst,
                              (void *) &(t_args[tIndex]));
@@ -558,20 +547,16 @@ int main(int argc, char* argv[])
                 num = (int)round(x);
             } while(num < L1 || num > L2);
 
-            printf("The random generated number for burst process is %d \n", num);
-
             //burst process
             if(strcmp(qs, "RM") == 0){
                 pthread_mutex_lock(&queueMutex[queueTurn % N]);
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    printf("adding node\n");
                     addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    printf("adding node\n");
                     addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num);
                 }
                 queueTurn++;
@@ -584,12 +569,10 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    printf("adding node to processor %d\n", smallestIntPos);
-                    addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, num, num);
+                    addNodeToEnd(&readyProcesses[smallestIntPos], pidCount, smallestIntPos, arrivalTime, num, num);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    printf("adding node\n");
                     addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, num, num);
                 }
                 pidCount++;
@@ -605,8 +588,6 @@ int main(int argc, char* argv[])
 
                 num = (int)round(x);
             } while(num < T1 || num > T2);
-
-            printf("the randomly generated number for iat is %d \n", num);
 
             usleep(1000 * num);
         }
