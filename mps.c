@@ -16,6 +16,7 @@ int Q = 20;
 
 pthread_mutex_t *queueMutex;
 pthread_mutex_t finishedProcessesMutex;
+pthread_mutex_t *loadNumMutex;
 
 char* alg;
 char* infile;
@@ -146,7 +147,7 @@ static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, 
 }
 
 /* function to delete the head node in linked list */
-static void deleteHeadNode(struct Node** head){
+static void deleteHeadNode(struct Node** head, int processorId){
     struct Node* current = *head;
 
     if(*head == NULL){
@@ -156,6 +157,9 @@ static void deleteHeadNode(struct Node** head){
     *head = current->next;
 
     free(current);
+    pthread_mutex_lock(&loadNumMutex[processorId]);
+    loadNum[processorId]--;
+     pthread_mutex_unlock(&loadNumMutex[processorId]);
     return;
 }
 
@@ -206,6 +210,7 @@ static void *processBurst(void *arg_ptr){
     struct timeval now;
     struct timeval finishTime;
     while(*readyQueue == NULL || !isDummyDetected || loadNum[processorId] > 1){
+        printf("processor id = %d, load num = %d\n", processorId, loadNum[processorId]);
         pthread_mutex_lock(&queueMutex[processorId]);
         if(*readyQueue == NULL){
             pthread_mutex_unlock(&queueMutex[processorId]);
@@ -216,7 +221,7 @@ static void *processBurst(void *arg_ptr){
             isDummyDetected = 1;
         }
         else{
-            printf("Process starts, processor id = %d, pid = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid);
+            printf("Process starts, processor id = %d, pid = %d burst length = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid, (*readyQueue)->pcb.burstLength);
             int isFinished = 0;
             struct Node** current;
             int finPid, finBurst, finArr, finRem, finFinTime, finTurn, finWaiting, finProcessorId;
@@ -251,7 +256,7 @@ static void *processBurst(void *arg_ptr){
                 finTurn = (*current)->pcb.turnaroundTime;
                 finWaiting = (*current)->pcb.waitingTime;
                 finProcessorId = (*current)->pcb.processorId;
-                deleteHeadNode(readyQueue);
+                deleteHeadNode(readyQueue, (*current)->pcb.processorId);
                 pthread_mutex_unlock(&queueMutex[processorId]);
             }
 
@@ -288,7 +293,7 @@ static void *processBurst(void *arg_ptr){
                     finTurn = (*current)->pcb.turnaroundTime;
                     finWaiting = (*current)->pcb.waitingTime;
                     finProcessorId = (*current)->pcb.processorId;
-                    deleteHeadNode(readyQueue);
+                    deleteHeadNode(readyQueue, (*current)->pcb.processorId);
                 }
                 else {
                     if(outmode == 2){
@@ -308,7 +313,7 @@ static void *processBurst(void *arg_ptr){
                     }
                     usleep(Q);
                     (*current)->pcb.remainingTime = (*current)->pcb.remainingTime - Q;
-                    deleteHeadNode(readyQueue);
+                    deleteHeadNode(readyQueue, (*current)->pcb.processorId);
                     addNodeToEnd(readyQueue, (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, 
                                 (*current)->pcb.burstLength, (*current)->pcb.remainingTime, 0, 0 , 0);
                 }
@@ -442,14 +447,18 @@ int main(int argc, char* argv[])
     /* initialize the queue mutex array */
     if(strcmp(sap, "M") == 0){
         queueMutex = (pthread_mutex_t*) malloc(N * sizeof(pthread_mutex_t));
+        loadNumMutex = (pthread_mutex_t*) malloc(N * sizeof(pthread_mutex_t));
         /* initialize every mutex lock of queue(s) inside for loop */
         for (int i = 0; i < N; i++){
             pthread_mutex_init(&queueMutex[i], NULL);
+            pthread_mutex_init(&loadNumMutex[i], NULL);
         }        
     }
     else if(strcmp(sap, "S") == 0){
         queueMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
+        loadNumMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
         pthread_mutex_init(&queueMutex[0], NULL);
+        pthread_mutex_init(&loadNumMutex[0], NULL);
     }
 
     /* initialize the finished processes mutex lock*/
@@ -531,7 +540,9 @@ int main(int argc, char* argv[])
                     queueTurn++;
                     pidCount++;
                     pthread_mutex_unlock(&queueMutex[queueTurn % N]);
+                    pthread_mutex_lock(&loadNumMutex[queueTurn % N]);
                     loadNum[queueTurn % N] = loadNum[queueTurn % N] + 1;
+                    pthread_mutex_unlock(&loadNumMutex[queueTurn % N]);
                 }
                 if(strcmp(qs,"LM") == 0){
                     int smallestIntPos = findSmallestIntPos(loadNum, N);
@@ -547,7 +558,9 @@ int main(int argc, char* argv[])
                     }
                     pidCount++;
                     pthread_mutex_unlock(&queueMutex[smallestIntPos]);
+                    pthread_mutex_lock(&loadNumMutex[smallestIntPos]);
                     loadNum[smallestIntPos] = loadNum[smallestIntPos] + 1;
+                    pthread_mutex_unlock(&loadNumMutex[smallestIntPos]);
                 }
             }
 
@@ -595,6 +608,7 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                    printf("The burst pid = %d, burst length = %d", pidCount, num);
                     addNodeToEnd(&readyProcesses[smallestIntPos], pidCount, smallestIntPos, arrivalTime, num, num, 0, 0, 0);
                 }
 
@@ -674,7 +688,9 @@ int main(int argc, char* argv[])
         }
 
         pthread_mutex_destroy(&queueMutex[0]);
+        pthread_mutex_destroy(&loadNumMutex[0]);
         free(queueMutex);
+        free(loadNumMutex);
     }
 
     if(strcmp(sap, "M") == 0){
@@ -689,8 +705,10 @@ int main(int argc, char* argv[])
             }
 
             pthread_mutex_destroy(&queueMutex[i]);
+            pthread_mutex_destroy(&loadNumMutex[i]);
         }
         free(queueMutex);
+        free(loadNumMutex)
     }
     
     if(strcmp(qs,"LM") == 0){
