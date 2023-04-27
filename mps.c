@@ -676,13 +676,25 @@ int main(int argc, char* argv[])
     int avgTurnaround = 0;
     int countForAvg = 0;
     while(curr != NULL){
-        fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
+        if(strlen(outfile) == 0){
+            printf("%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
+        }
+        else if(strlen(outfile) > 0){
+            fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
+        }
         avgTurnaround = avgTurnaround + curr->pcb.turnaroundTime;
         countForAvg++;
         curr = curr->next;
     }
     avgTurnaround = avgTurnaround / countForAvg;
-    fprintf(out, "Average turnaround time: %d\n", avgTurnaround);
+
+    if(strlen(outfile) == 0){
+        printf("Average turnaround time: %d\n", avgTurnaround);
+    }
+    else if(strlen(outfile) > 0){
+        fprintf(out, "Average turnaround time: %d\n", avgTurnaround);
+    }
+    
 
     free(tids);
     free(t_args);
