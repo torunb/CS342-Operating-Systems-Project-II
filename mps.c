@@ -161,7 +161,7 @@ void static printInformation(struct Node* head, int currentTime){
         struct Node* now = head;
 
         while(now != NULL){
-            fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %f, remainingtime = %f", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
+            fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
             now = now->next;
         }
 
@@ -179,7 +179,7 @@ void static printOutMode3(struct Node* head){
         struct Node* now = head;
 
         while(now != NULL){
-            fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId);
+            fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, now->pcb.remainingTime);
             now = now->next;
         }
         fprintf(out, "-------END OUTMODE3-------\n");
@@ -609,7 +609,7 @@ int main(int argc, char* argv[])
     double avgTurnaround;
     int countForAvg;
     while(current != NULL){
-        fprintf(out, "%-10d %-10d %-10f %-10f %-10f %-12f %-10f\n", current->pcb.pid, current->pcb.processorId, current->pcb.burstLength, current->pcb.arrivalTime, current->pcb.finishTime, current->pcb.waitingTime, current->pcb.turnaroundTime);
+        fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", current->pcb.pid, current->pcb.processorId, current->pcb.burstLength, current->pcb.arrivalTime, current->pcb.finishTime, current->pcb.waitingTime, current->pcb.turnaroundTime);
         avgTurnaround = avgTurnaround + current->pcb.turnaroundTime;
         countForAvg++;
         current = current->next;
