@@ -154,40 +154,40 @@ static void deleteHeadNode(struct Node** head){
     return;
 }
 
-void static printInformation(struct Node* head, int currentTime){
-    if(head == NULL){
+void static printInformation(struct Node** head, int currentTime){
+    if(*head == NULL){
         printf("Error! Empty list\n");
     }
     
     else{
         FILE* out = fopen(outfile, "w");
-        struct Node* now = head;
+        struct Node** now = head;
 
         while(now != NULL){
-            fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
-            now = now->next;
+            fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
+            *now = (*now)->next;
         }
         fprintf(out, "-------END OUTMODE2-------\n"); // will be deleted
     }
 }
 
-void static printOutMode3(struct Node* head, int stayFor, char* alg){
+void static printOutMode3(struct Node** head, int stayFor, char* alg){
     if(head == NULL){
         printf("Error! Empty list\n");
     }
 
     else{
         FILE* out = fopen(outfile, "w");
-        struct Node* now = head;
+        struct Node** now = head;
 
         while(now != NULL){
             if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "SJF") == 0){
-                fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", now->pcb.pid, now->pcb.processorId, now->pcb.remainingTime);
+                fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
             }
             else if(strcmp(alg, "RR") == 0){
-                fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, stayFor);
+                fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
             }
-            now = now->next;
+            (*now) = (*now)->next;
         }
         fprintf(out, "-------END OUTMODE3-------\n"); // will be deleted
     }
@@ -214,11 +214,11 @@ static void *processBurst(void *arg_ptr){
             //printf("Process starts, processor id = %d, pid = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid);
             int index = (*readyQueue)->pcb.processorId;
             int isFinished = 0;
-            struct Node* current;
+            struct Node** current;
 
             if(strcmp(alg, "SJF") == 0 || strcmp(alg, "FCFS") == 0)
             {
-                current = *readyQueue;
+                current = readyQueue;
                 deleteHeadNode(readyQueue);
                 pthread_mutex_unlock(&queueMutex[index]);
 
@@ -231,21 +231,21 @@ static void *processBurst(void *arg_ptr){
 
                 else if(outmode == 3){
                     printf("OUTMODE 3\n"); 
-                    printOutMode3(current, current->pcb.remainingTime, alg);
+                    printOutMode3(current, (*current)->pcb.remainingTime, alg);
                 }
 
-                usleep(current->pcb.burstLength * 1000); // sleep its burst length time
+                usleep((*current)->pcb.burstLength * 1000); // sleep its burst length time
                 gettimeofday(&finishTime, 0);
-                current->pcb.finishTime = 1000 * (finishTime.tv_sec - tbegin.tv_sec) + 0.001 * (finishTime.tv_usec - tbegin.tv_usec);
-                current->pcb.turnaroundTime = current->pcb.finishTime - current->pcb.arrivalTime;
-                current->pcb.waitingTime = current->pcb.turnaroundTime - current->pcb.burstLength;
-                current->pcb.remainingTime = 0; 
+                (*current)->pcb.finishTime = 1000 * (finishTime.tv_sec - tbegin.tv_sec) + 0.001 * (finishTime.tv_usec - tbegin.tv_usec);
+                (*current)->pcb.turnaroundTime = (*current)->pcb.finishTime - (*current)->pcb.arrivalTime;
+                (*current)->pcb.waitingTime = (*current)->pcb.turnaroundTime - (*current)->pcb.burstLength;
+                (*current)->pcb.remainingTime = 0; 
                 isFinished = 1;
             }
 
             if(strcmp(alg, "RR") == 0){
-                current = *readyQueue;
-                if(current->pcb.remainingTime < Q){
+                current = readyQueue;
+                if((*current)->pcb.remainingTime < Q){
                     if(outmode == 2){
                         printf("OUTMODE 2\n");
                         gettimeofday(&now, NULL);
@@ -254,19 +254,19 @@ static void *processBurst(void *arg_ptr){
                     }
                     else if(outmode == 3){
                         printf("OUTMODE 3\n");
-                        if(current->pcb.remainingTime < Q){
-                            printOutMode3(current, current->pcb.remainingTime, alg);
+                        if((*current)->pcb.remainingTime < Q){
+                            printOutMode3(current, (*current)->pcb.remainingTime, alg);
                         }
                         else{
                             printOutMode3(current, Q, alg);
                         }                       
                     }
-                    usleep(current->pcb.remainingTime * 1000);
+                    usleep((*current)->pcb.remainingTime * 1000);
                     gettimeofday(&finishTime, 0);
-                    current->pcb.finishTime = 1000 * (finishTime.tv_sec - tbegin.tv_sec) + 0.001 * (finishTime.tv_usec - tbegin.tv_usec);
-                    current->pcb.turnaroundTime = current->pcb.finishTime - current->pcb.arrivalTime;
-                    current->pcb.waitingTime = current->pcb.turnaroundTime - current->pcb.burstLength;
-                    current->pcb.remainingTime = 0; 
+                    (*current)->pcb.finishTime = 1000 * (finishTime.tv_sec - tbegin.tv_sec) + 0.001 * (finishTime.tv_usec - tbegin.tv_usec);
+                    (*current)->pcb.turnaroundTime = (*current)->pcb.finishTime - (*current)->pcb.arrivalTime;
+                    (*current)->pcb.waitingTime = (*current)->pcb.turnaroundTime - (*current)->pcb.burstLength;
+                    (*current)->pcb.remainingTime = 0; 
                     isFinished = 1;
                 }
                 else {
@@ -278,24 +278,24 @@ static void *processBurst(void *arg_ptr){
                     }
                     else if(outmode == 3){
                         printf("OUTMODE 3\n");
-                        if(current->pcb.remainingTime < Q){
-                            printOutMode3(current, current->pcb.remainingTime, alg);
+                        if((*current)->pcb.remainingTime < Q){
+                            printOutMode3(current, (*current)->pcb.remainingTime, alg);
                         }
                         else{
                             printOutMode3(current, Q, alg);
                         }    
                     }
                     usleep(Q);
-                    current->pcb.remainingTime = current->pcb.remainingTime - Q;
+                    (*current)->pcb.remainingTime = (*current)->pcb.remainingTime - Q;
                 }
                 deleteHeadNode(readyQueue);
-                addNodeToEnd(readyQueue, current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime, current->pcb.burstLength, current->pcb.remainingTime);
+                addNodeToEnd(readyQueue, (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, (*current)->pcb.burstLength, (*current)->pcb.remainingTime);
             }
 
             if(isFinished)
             {
                 pthread_mutex_lock(&finishedProcessesMutex);
-                addNodeToEnd(readyQueue,current->pcb.pid, current->pcb.processorId, current->pcb.arrivalTime, current->pcb.burstLength, current->pcb.remainingTime);
+                addNodeToEnd(readyQueue,(*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, (*current)->pcb.burstLength, (*current)->pcb.remainingTime);
                 pthread_mutex_unlock(&finishedProcessesMutex);
             }
         }  
