@@ -206,7 +206,7 @@ static void *processBurst(void *arg_ptr){
     int isDummyDetected = 0;
     struct timeval now;
     struct timeval finishTime;
-    while(*readyQueue == NULL || !isDummyDetected || loadNum[processorId] < 2){
+    while(*readyQueue == NULL || !isDummyDetected || loadNum[processorId] > 1){
         pthread_mutex_lock(&queueMutex[processorId]);
         if(*readyQueue == NULL){
             pthread_mutex_unlock(&queueMutex[processorId]);
@@ -217,16 +217,14 @@ static void *processBurst(void *arg_ptr){
             isDummyDetected = 1;
         }
         else{
-            //printf("Process starts, processor id = %d, pid = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid);
-            int index = (*readyQueue)->pcb.processorId;
+            printf("Process starts, processor id = %d, pid = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid);
             int isFinished = 0;
             struct Node** current;
+            int finPid, finBurst, finArr, finRem, finFinTime, finTurn, finWaiting, finProcessorId;
 
             if(strcmp(alg, "SJF") == 0 || strcmp(alg, "FCFS") == 0)
             {
                 current = readyQueue;
-                deleteHeadNode(readyQueue);
-                pthread_mutex_unlock(&queueMutex[index]);
 
                 if(outmode == 2){
                     printf("OUTMODE 2\n");
@@ -239,14 +237,23 @@ static void *processBurst(void *arg_ptr){
                     printf("OUTMODE 3\n"); 
                     printOutMode3(current, (*current)->pcb.remainingTime, alg);
                 }
-
-                usleep((*current)->pcb.burstLength * 1000); // sleep its burst length time
+                usleep((*current)->pcb.burstLength * 1000); 
                 gettimeofday(&finishTime, 0);
                 (*current)->pcb.finishTime = 1000 * (finishTime.tv_sec - tbegin.tv_sec) + 0.001 * (finishTime.tv_usec - tbegin.tv_usec);
                 (*current)->pcb.turnaroundTime = (*current)->pcb.finishTime - (*current)->pcb.arrivalTime;
                 (*current)->pcb.waitingTime = (*current)->pcb.turnaroundTime - (*current)->pcb.burstLength;
                 (*current)->pcb.remainingTime = 0; 
                 isFinished = 1;
+                finPid = (*current)->pcb.pid;
+                finBurst = (*current)->pcb.burstLength;
+                finArr = (*current)->pcb.arrivalTime;
+                finRem = (*current)->pcb.remainingTime;
+                finFinTime = (*current)->pcb.finishTime;
+                finTurn = (*current)->pcb.turnaroundTime;
+                finWaiting = (*current)->pcb.waitingTime;
+                finProcessorId = (*current)->pcb.processorId;
+                deleteHeadNode(readyQueue);
+                pthread_mutex_unlock(&queueMutex[processorId]);
             }
 
             if(strcmp(alg, "RR") == 0){
@@ -274,6 +281,15 @@ static void *processBurst(void *arg_ptr){
                     (*current)->pcb.waitingTime = (*current)->pcb.turnaroundTime - (*current)->pcb.burstLength;
                     (*current)->pcb.remainingTime = 0; 
                     isFinished = 1;
+                    finPid = (*current)->pcb.pid;
+                    finBurst = (*current)->pcb.burstLength;
+                    finArr = (*current)->pcb.arrivalTime;
+                    finRem = (*current)->pcb.remainingTime;
+                    finFinTime = (*current)->pcb.finishTime;
+                    finTurn = (*current)->pcb.turnaroundTime;
+                    finWaiting = (*current)->pcb.waitingTime;
+                    finProcessorId = (*current)->pcb.processorId;
+                    deleteHeadNode(readyQueue);
                 }
                 else {
                     if(outmode == 2){
@@ -293,18 +309,19 @@ static void *processBurst(void *arg_ptr){
                     }
                     usleep(Q);
                     (*current)->pcb.remainingTime = (*current)->pcb.remainingTime - Q;
+                    deleteHeadNode(readyQueue);
+                    addNodeToEnd(readyQueue, (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, 
+                                (*current)->pcb.burstLength, (*current)->pcb.remainingTime, 0, 0 , 0);
                 }
-                deleteHeadNode(readyQueue);
-                addNodeToEnd(readyQueue, (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, 
-                             (*current)->pcb.burstLength, (*current)->pcb.remainingTime, 0, 0 , 0);
+                pthread_mutex_unlock(&queueMutex[processorId]);
             }
 
             if(isFinished)
             {
                 pthread_mutex_lock(&finishedProcessesMutex);
-                addNodeToEnd(readyQueue,(*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, 
-                             (*current)->pcb.burstLength, (*current)->pcb.remainingTime, (*current)->pcb.finishTime, 
-                             (*current)->pcb.turnaroundTime, (*current)->pcb.waitingTime);
+                addNodeToEnd(&finishedProcesses,finPid, finProcessorId, finArr, 
+                             finBurst, finRem, finFinTime, 
+                             finTurn, finWaiting);
                 pthread_mutex_unlock(&finishedProcessesMutex);
             }
         }  
@@ -616,7 +633,7 @@ int main(int argc, char* argv[])
         pthread_mutex_unlock(&queueMutex[0]);
     }
 
-    struct Node* current = finishedProcesses;
+    struct Node** current = &finishedProcesses;
 
     /* joining threads after their termination */
     for (int tIndex = 0; tIndex < N; tIndex++) {
@@ -631,11 +648,11 @@ int main(int argc, char* argv[])
     fprintf(out, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
     int avgTurnaround;
     int countForAvg;
-    while(current != NULL){
-        fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", current->pcb.pid, current->pcb.processorId, current->pcb.burstLength, current->pcb.arrivalTime, current->pcb.finishTime, current->pcb.waitingTime, current->pcb.turnaroundTime);
-        avgTurnaround = avgTurnaround + current->pcb.turnaroundTime;
+    while(*current != NULL){
+        fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.burstLength, (*current)->pcb.arrivalTime, (*current)->pcb.finishTime, (*current)->pcb.waitingTime, (*current)->pcb.turnaroundTime);
+        avgTurnaround = avgTurnaround + (*current)->pcb.turnaroundTime;
         countForAvg++;
-        current = current->next;
+        current = &((*current)->next);
     }
 
     avgTurnaround = avgTurnaround / countForAvg;
@@ -647,13 +664,13 @@ int main(int argc, char* argv[])
     }
 
     if(strcmp(sap, "S") == 0){
-        struct Node* current = readyProcesses[0];
+        struct Node** current = &readyProcesses[0];
         struct Node* next;
 
-        while(current != NULL){
-            next = current->next;
-            free(current);
-            current = next;
+        while((*current) != NULL){
+            next = (*current)->next;
+            free((*current));
+            (*current) = next;
         }
 
         pthread_mutex_destroy(&queueMutex[0]);
@@ -662,13 +679,13 @@ int main(int argc, char* argv[])
 
     if(strcmp(sap, "M") == 0){
         for(int i = 0; i < N; i++){
-            struct Node* current = readyProcesses[i];
+            struct Node** current = &readyProcesses[i];
             struct Node* next;
 
-            while(current != NULL){
-                next = current->next;
-                free(current);
-                current = next;
+            while((*current) != NULL){
+                next = (*current)->next;
+                free((*current));
+                (*current) = next;
             }
 
             pthread_mutex_destroy(&queueMutex[i]);
