@@ -77,6 +77,7 @@ static void addNodeToEnd(struct Node** head, int pid, int processorId, int arriv
     }
 
     last->next = nodeNew;
+    printf("The new node added to the queue\n");
     return;
 }
 
@@ -99,6 +100,7 @@ static void addNodeToEndDummy(struct Node** head, int processorId){
     }
 
     last->next = nodeNew;
+    printf("The dummy node added to the queue\n");
     return;
 }
 
@@ -134,6 +136,7 @@ static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, 
     struct Node* temp = last->next;
     last->next = nodeNew;
     nodeNew->next = temp;
+    printf("The new node added to the queue(SJF)\n");
     return;
 }
 
@@ -188,6 +191,7 @@ void static printOutMode3(struct Node* head){
 
 /* the function to be executed by threads (processors) */
 static void *processBurst(void *arg_ptr){
+    printf("The process funct starts \n");
     struct Node* readyQueue = ((struct arg *) arg_ptr)->readyQueue;
     struct Node** head = &readyQueue;
     int index = readyQueue->pcb.processorId;
@@ -287,6 +291,7 @@ static void *processBurst(void *arg_ptr){
                 pthread_mutex_unlock(&finishedProcessesMutex);
             }
         }  
+        printf("End of while statement inside process function \n");
     }
     pthread_exit(NULL); 
 }
@@ -344,7 +349,6 @@ int main(int argc, char* argv[])
 
     for(int i = 1; i < argc; i++) {
         char* cur = argv[i];
-        printf("cur=> %s\n", cur);
 
         if(strcmp(cur, "-n") == 0) {
             N = atoi(argv[++i]);
@@ -398,6 +402,9 @@ int main(int argc, char* argv[])
         Q = 0;
     }
 
+    printf("Successfully completed taking input part\n");
+
+
     /* After everything is set, the process can begin...*/
 
     /* MUTEX LOCK INITIALIZATION */
@@ -407,16 +414,21 @@ int main(int argc, char* argv[])
         /* initialize every mutex lock of queue(s) inside for loop */
         for (int i = 0; i < N; i++){
             pthread_mutex_init(&queueMutex[i], NULL);
+            printf("Memory address of the newly created queue mutex: %p \n", &queueMutex[i]);
         }        
     }
     else if(strcmp(sap, "S") == 0){
         queueMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
         pthread_mutex_init(&queueMutex[0], NULL);
+        printf("Memory address of the newly created queue mutex: %p\n", &queueMutex[0]);
     }
 
     /* initialize the finished processes mutex lock*/
     pthread_mutex_init(&finishedProcessesMutex, NULL);
+    printf("Memory address of the newly created finished mutex: %p\n", &finishedProcessesMutex);
 
+    printf("mutex locks are initialized successfully\n");
+    
     /* QUEUE(S) CREATION */
     if(strcmp(sap, "M") == 0){
         readyProcesses = (struct Node**) malloc(N * sizeof(struct Node*));
@@ -457,24 +469,25 @@ int main(int argc, char* argv[])
             exit(1);
         }
     }
-
-    /* MAIN THREAD PROCESS READ FROM FILE SEGMENT */
-    filePtr = fopen(infile, "r");
-
-    if(filePtr == NULL)
-    {
-        exit(1);
-    }
-
+    
     /*the time of the arrival of the process*/
     struct timeval tarrival;
 
-    /*information string*/
-    char inputType[64];
-    /*amount of time (ms)*/
-    int timeInput;
-
     if(isISpecified && !isRSpecified){
+
+        /* MAIN THREAD PROCESS READ FROM FILE SEGMENT */
+        filePtr = fopen(infile, "r");
+
+        if(filePtr == NULL)
+        {
+            exit(1);
+        }
+
+        /*information string*/
+        char inputType[64];
+        /*amount of time (ms)*/
+        int timeInput;
+
         while(fscanf(filePtr, "%s %d", inputType, &timeInput) != EOF){
             if(strcmp(inputType, "PL") == 0){
                 if(strcmp(qs, "RM") == 0){
@@ -533,17 +546,19 @@ int main(int argc, char* argv[])
                 num = (int)round(x);
             } while(num < L1 || num > L2);
 
+            printf("The random generated number for burst process is %d \n", num);
+
             //burst process
             if(strcmp(qs, "RM") == 0){
                 pthread_mutex_lock(&queueMutex[queueTurn % N]);
                 gettimeofday(&tarrival, 0);
-                double arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
+                int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput);
+                    addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput);
+                    addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num);
                 }
                 queueTurn++;
                 pidCount++;
@@ -553,13 +568,13 @@ int main(int argc, char* argv[])
                 int smallestIntPos = findSmallestIntPos(loadNum, N);
                 pthread_mutex_lock(&queueMutex[smallestIntPos]);
                 gettimeofday(&tarrival, 0);
-                double arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
+                int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput);
+                    addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, num, num);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput);
+                    addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, num, num);
                 }
                 pidCount++;
                 pthread_mutex_unlock(&queueMutex[smallestIntPos]);
@@ -574,6 +589,8 @@ int main(int argc, char* argv[])
 
                 num = (int)round(x);
             } while(num < T1 || num > T2);
+
+            printf("the randomly generated number for iat is %d \n", num);
 
             usleep(1000 * num);
         }
