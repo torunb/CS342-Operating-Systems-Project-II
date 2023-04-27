@@ -173,7 +173,12 @@ void static printInformation(struct Node** head, int currentTime){
         struct Node** now = head;
 
         while(now != NULL){
+            if(strlen(outfile) == 0){
+                printf("time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
+            }
+            else if(strlen(outfile) > 0){
             fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
+            }
             now = &((*now)->next);
         }
         fprintf(out, "-------END OUTMODE2-------\n"); // will be deleted
@@ -191,10 +196,20 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
 
         while(now != NULL){
             if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "SJF") == 0){
-                fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
+                if(strlen(outfile) == 0){
+                    printf("pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
+                }
+                else if(strlen(outmode) > 0){
+                    fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
+                }
             }
             else if(strcmp(alg, "RR") == 0){
-                fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
+                if(strlen(outfile) == 0){
+                    printf("pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
+                }
+                else if(strlen(outmode) > 0){
+                    fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
+                }
             }
             now = &((*now)->next);
         }
@@ -365,7 +380,6 @@ int main(int argc, char* argv[])
     char* qs = "RM";
     /* the scheduling algorithm */
     alg = "RR";
-    outfile = "out.txt";
 
     /* pid count */
     int pidCount = 0;
@@ -659,8 +673,8 @@ int main(int argc, char* argv[])
     FILE* out = fopen(outfile, "w");
 
     fprintf(out, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
-    int avgTurnaround;
-    int countForAvg;
+    int avgTurnaround = 0;
+    int countForAvg = 0;
     while(curr != NULL){
         fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
         avgTurnaround = avgTurnaround + curr->pcb.turnaroundTime;
