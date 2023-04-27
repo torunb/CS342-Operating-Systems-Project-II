@@ -171,7 +171,7 @@ void static printInformation(struct Node* head, int currentTime){
     }
 }
 
-void static printOutMode3(struct Node* head, int stayFor){
+void static printOutMode3(struct Node* head, int stayFor, char* alg){
     if(head == NULL){
         printf("Error! Empty list\n");
     }
@@ -181,7 +181,12 @@ void static printOutMode3(struct Node* head, int stayFor){
         struct Node* now = head;
 
         while(now != NULL){
-            fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, now->pcb.remainingTime, stayFor);
+            if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "SJF") == 0){
+                fprintf(out, "pid = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.processorId, now->pcb.remainingTime, now->pcb.remainingTime);
+            }
+            else if(strcmp(alg, "RR") == 0){
+                fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, now->pcb.remainingTime, stayFor);
+            }
             now = now->next;
         }
         fprintf(out, "-------END OUTMODE3-------\n"); // will be deleted
@@ -226,7 +231,7 @@ static void *processBurst(void *arg_ptr){
 
                 else if(outmode == 3){
                     printf("OUTMODE 3\n"); 
-                    printOutMode3(current, current->pcb.remainingTime);
+                    printOutMode3(current, current->pcb.remainingTime, alg);
                 }
 
                 usleep(current->pcb.burstLength * 1000); // sleep its burst length time
@@ -250,10 +255,10 @@ static void *processBurst(void *arg_ptr){
                     else if(outmode == 3){
                         printf("OUTMODE 3\n");
                         if(current->pcb.remainingTime < Q){
-                            printOutMode3(current, current->pcb.remainingTime);
+                            printOutMode3(current, current->pcb.remainingTime, alg);
                         }
                         else{
-                            printOutMode3(current, Q);
+                            printOutMode3(current, Q, alg);
                         }                       
                     }
                     usleep(current->pcb.remainingTime * 1000);
@@ -274,10 +279,10 @@ static void *processBurst(void *arg_ptr){
                     else if(outmode == 3){
                         printf("OUTMODE 3\n");
                         if(current->pcb.remainingTime < Q){
-                            printOutMode3(current, current->pcb.remainingTime);
+                            printOutMode3(current, current->pcb.remainingTime, alg);
                         }
                         else{
-                            printOutMode3(current, Q);
+                            printOutMode3(current, Q, alg);
                         }    
                     }
                     usleep(Q);
