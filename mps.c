@@ -26,10 +26,6 @@ int* loadNum;
 
 int outmode; // OUTMODE 
 
-/*
-*OUTMODE 3 BAKILCAK
-*/
-
 struct Node** readyProcesses;
 int readyQueueNum;
 struct Node* finishedProcesses; 
@@ -58,7 +54,9 @@ struct arg {
 };
 
 /*function to add a new node to queue linked list*/
-static void addNodeToEnd(struct Node** head, int pid, int processorId, int arrivalTime, int burstLength, int remainingTime){
+static void addNodeToEnd(struct Node** head, int pid, int processorId, int arrivalTime, 
+                         int burstLength, int remainingTime, int finishTime, int turnaroundTime,
+                         int waitingTime){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
     printf("pid = %d\n", pid);
     nodeNew->pcb.pid = pid;
@@ -66,6 +64,9 @@ static void addNodeToEnd(struct Node** head, int pid, int processorId, int arriv
     nodeNew->pcb.arrivalTime = arrivalTime;
     nodeNew->pcb.burstLength = burstLength;
     nodeNew->pcb.remainingTime = remainingTime;
+    nodeNew->pcb.finishTime = finishTime;
+    nodeNew->pcb.turnaroundTime = turnaroundTime;
+    nodeNew->pcb.waitingTime = waitingTime;
     nodeNew->next = NULL;
 
     struct Node* last = *head;
@@ -106,13 +107,18 @@ static void addNodeToEndDummy(struct Node** head, int processorId){
 }
 
 /* function that adds according to SJF */
-static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, int arrivalTime, int burstLength, int remainingTime){
+static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, int arrivalTime, 
+                                  int burstLength, int remainingTime, int finishTime, int turnaroundTime,
+                                  int waitingTime){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
     nodeNew->pcb.pid = pid;
     nodeNew->pcb.processorId = processorId;
     nodeNew->pcb.arrivalTime = arrivalTime;
     nodeNew->pcb.burstLength = burstLength;
     nodeNew->pcb.remainingTime = remainingTime;
+        nodeNew->pcb.finishTime = finishTime;
+    nodeNew->pcb.turnaroundTime = turnaroundTime;
+    nodeNew->pcb.waitingTime = waitingTime;
     nodeNew->next = NULL;
 
     struct Node* last = *head;
@@ -289,13 +295,16 @@ static void *processBurst(void *arg_ptr){
                     (*current)->pcb.remainingTime = (*current)->pcb.remainingTime - Q;
                 }
                 deleteHeadNode(readyQueue);
-                addNodeToEnd(readyQueue, (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, (*current)->pcb.burstLength, (*current)->pcb.remainingTime);
+                addNodeToEnd(readyQueue, (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, 
+                             (*current)->pcb.burstLength, (*current)->pcb.remainingTime, 0, 0 , 0);
             }
 
             if(isFinished)
             {
                 pthread_mutex_lock(&finishedProcessesMutex);
-                addNodeToEnd(readyQueue,(*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, (*current)->pcb.burstLength, (*current)->pcb.remainingTime);
+                addNodeToEnd(readyQueue,(*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, 
+                             (*current)->pcb.burstLength, (*current)->pcb.remainingTime, (*current)->pcb.finishTime, 
+                             (*current)->pcb.turnaroundTime, (*current)->pcb.waitingTime);
                 pthread_mutex_unlock(&finishedProcessesMutex);
             }
         }  
@@ -496,11 +505,11 @@ int main(int argc, char* argv[])
                     gettimeofday(&tarrival, 0);
                     int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                     if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                        addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput);
+                        addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
 
                     if(strcmp(alg,"SJF") == 0){
-                        addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput);
+                        addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
                     queueTurn++;
                     pidCount++;
@@ -513,11 +522,11 @@ int main(int argc, char* argv[])
                     gettimeofday(&tarrival, 0);
                     int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                     if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                        addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput);
+                        addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
 
                     if(strcmp(alg,"SJF") == 0){
-                        addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput);
+                        addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
                     pidCount++;
                     pthread_mutex_unlock(&queueMutex[smallestIntPos]);
@@ -553,11 +562,11 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num);
+                    addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num, 0, 0, 0);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num);
+                    addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num, 0, 0, 0);
                 }
                 queueTurn++;
                 pidCount++;
@@ -569,11 +578,11 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    addNodeToEnd(&readyProcesses[smallestIntPos], pidCount, smallestIntPos, arrivalTime, num, num);
+                    addNodeToEnd(&readyProcesses[smallestIntPos], pidCount, smallestIntPos, arrivalTime, num, num, 0, 0, 0);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, num, num);
+                    addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, num, num, 0, 0, 0);
                 }
                 pidCount++;
                 pthread_mutex_unlock(&queueMutex[smallestIntPos]);
