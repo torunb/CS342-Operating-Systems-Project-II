@@ -51,6 +51,8 @@ struct Node {
 };
 
 struct arg {
+    /* the processor's id */
+    int processorId;
     /* the process ready queue */
     struct Node* readyQueue;
 };
@@ -192,23 +194,25 @@ void static printOutMode3(struct Node* head){
 /* the function to be executed by threads (processors) */
 static void *processBurst(void *arg_ptr){
     printf("The process funct starts \n");
+    int processorId = ((struct arg *) arg_ptr)->processorId;
     struct Node* readyQueue = ((struct arg *) arg_ptr)->readyQueue;
     struct Node** head = &readyQueue;
-    int index = readyQueue->pcb.processorId;
     int isDummyDetected = 0;
     struct timeval now;
     struct timeval finishTime;
-    printf("%d\n", readyQueue->pcb.pid); // to see the id of the thread IT WILL BE DELETED DONT'T PANIC
-    while(*head == NULL || !isDummyDetected || loadNum[index] < 2){
-        pthread_mutex_lock(&queueMutex[index]);
+    while(*head == NULL || !isDummyDetected || loadNum[processorId] < 2){
+        pthread_mutex_lock(&queueMutex[processorId]);
         if(*head == NULL){
-            pthread_mutex_unlock(&queueMutex[index]);
+            pthread_mutex_unlock(&queueMutex[processorId]);
             usleep(1000);
         }
         else if(readyQueue->pcb.pid == -1){
+            printf("dummy detected\n");
             isDummyDetected = 1;
         }
         else{
+            printf("%d\n",readyQueue->pcb.pid);
+            int index = readyQueue->pcb.processorId;
             int isFinished = 0;
             struct Node* current;
 
@@ -291,7 +295,6 @@ static void *processBurst(void *arg_ptr){
                 pthread_mutex_unlock(&finishedProcessesMutex);
             }
         }  
-        printf("End of while statement inside process function \n");
     }
     pthread_exit(NULL); 
 }
@@ -456,6 +459,7 @@ int main(int argc, char* argv[])
     int ret;
 
     for(int tIndex = 0; tIndex < N; tIndex++){
+        t_args[tIndex].processorId = tIndex;
         if(strcmp(sap, "M") == 0){
             t_args[tIndex].readyQueue = readyProcesses[tIndex];
         }
@@ -554,10 +558,12 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                    printf("adding node\n");
                     addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
+                    printf("adding node\n");
                     addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num);
                 }
                 queueTurn++;
@@ -570,10 +576,12 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                    printf("adding node to processor %d\n", smallestIntPos);
                     addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, num, num);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
+                    printf("adding node\n");
                     addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, num, num);
                 }
                 pidCount++;
