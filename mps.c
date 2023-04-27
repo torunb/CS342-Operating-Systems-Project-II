@@ -708,7 +708,7 @@ int main(int argc, char* argv[])
             pthread_mutex_destroy(&loadNumMutex[i]);
         }
         free(queueMutex);
-        free(loadNumMutex)
+        free(loadNumMutex);
     }
     
     if(strcmp(qs,"LM") == 0){
