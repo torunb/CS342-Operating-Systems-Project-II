@@ -182,10 +182,10 @@ void static printOutMode3(struct Node* head, int stayFor, char* alg){
 
         while(now != NULL){
             if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "SJF") == 0){
-                fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", now->pcb.pid, now->pcb.processorId, now->pcb.remainingTime, now->pcb.remainingTime);
+                fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", now->pcb.pid, now->pcb.processorId, now->pcb.remainingTime);
             }
             else if(strcmp(alg, "RR") == 0){
-                fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, now->pcb.remainingTime, stayFor);
+                fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, stayFor);
             }
             now = now->next;
         }
