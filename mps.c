@@ -21,6 +21,9 @@ char* alg;
 char* infile;
 char* outfile;
 
+/* the number of load in queues*/
+int* loadNum;
+
 int outmode; // OUTMODE 
 
 /*
@@ -33,12 +36,12 @@ struct Node* finishedProcesses;
 
 typedef struct {
     int pid;
-    double burstLength;
-    double arrivalTime;
-    double remainingTime;
-    double finishTime;
-    double turnaroundTime;
-    double waitingTime;
+    int burstLength;
+    int arrivalTime;
+    int remainingTime;
+    int finishTime;
+    int turnaroundTime;
+    int waitingTime;
     int processorId;
 } BurstItem;
 
@@ -53,7 +56,7 @@ struct arg {
 };
 
 /*function to add a new node to queue linked list*/
-static void addNodeToEnd(struct Node** head, int pid, int processorId, double arrivalTime, int burstLength, int remainingTime){
+static void addNodeToEnd(struct Node** head, int pid, int processorId, int arrivalTime, int burstLength, int remainingTime){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
     nodeNew->pcb.pid = pid;
     nodeNew->pcb.processorId = processorId;
@@ -100,7 +103,7 @@ static void addNodeToEndDummy(struct Node** head, int processorId){
 }
 
 /* function that adds according to SJF */
-static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, double arrivalTime, int burstLength, int remainingTime){
+static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, int arrivalTime, int burstLength, int remainingTime){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
     nodeNew->pcb.pid = pid;
     nodeNew->pcb.processorId = processorId;
@@ -138,7 +141,7 @@ static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, 
 static void deleteHeadNode(struct Node** head){
     struct Node* current = *head;
 
-    if((*head) == NULL){
+    if(*head == NULL){
         return;
     }
 
@@ -148,7 +151,7 @@ static void deleteHeadNode(struct Node** head){
     return;
 }
 
-void static printInformation(struct Node* head, double currentTime){
+void static printInformation(struct Node* head, int currentTime){
     if(head == NULL){
         printf("Error! Empty list\n");
     }
@@ -158,7 +161,7 @@ void static printInformation(struct Node* head, double currentTime){
         struct Node* now = head;
 
         while(now != NULL){
-            fprintf(out, "time = %f, cpu = %d, pid = %d, burstlen = %f, remainingtime = %f", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
+            fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %f, remainingtime = %f", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
             now = now->next;
         }
 
@@ -176,7 +179,7 @@ void static printOutMode3(struct Node* head){
         struct Node* now = head;
 
         while(now != NULL){
-            fprintf(out, "pid = %d, remaining time = %f, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId);
+            fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId);
             now = now->next;
         }
         fprintf(out, "-------END OUTMODE3-------\n");
@@ -188,18 +191,20 @@ static void *processBurst(void *arg_ptr){
     struct Node* readyQueue = ((struct arg *) arg_ptr)->readyQueue;
     struct Node** head = &readyQueue;
     int index = readyQueue->pcb.processorId;
-    struct timeval start;
+    int isDummyDetected = 0;
     struct timeval now;
     struct timeval finishTime;
     printf("%d\n", readyQueue->pcb.pid); // to see the id of the thread IT WILL BE DELETED DONT'T PANIC
-    while(*head == NULL || readyQueue->pcb.pid != -1){
+    while(*head == NULL || !isDummyDetected || loadNum[index] < 2){
         pthread_mutex_lock(&queueMutex[index]);
         if(*head == NULL){
             pthread_mutex_unlock(&queueMutex[index]);
             usleep(1000);
         }
+        else if(readyQueue->pcb.pid == -1){
+            isDummyDetected = 1;
+        }
         else{
-            gettimeofday(&start, NULL);
             int isFinished = 0;
             struct Node* current;
 
@@ -212,14 +217,14 @@ static void *processBurst(void *arg_ptr){
                 if(outmode == 2){
                     printf("OUTMODE 2\n");
                     gettimeofday(&now, NULL);
-                    double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                    int currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                     printInformation(current, currentTime);
                 }
 
                 else if(outmode == 3){
                     printf("OUTMODE 3\n");
                     gettimeofday(&now, NULL);
-                    double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                    int currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                     printInformation(current, currentTime);
                 }
 
@@ -238,13 +243,13 @@ static void *processBurst(void *arg_ptr){
                     if(outmode == 2){
                         printf("OUTMODE 2\n");
                         gettimeofday(&now, NULL);
-                        double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                        double currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                         printInformation(current, currentTime);
                     }
                     else if(outmode == 3){
                         printf("OUTMODE 3\n");
                         gettimeofday(&now, NULL);
-                        double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                        double currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                         printInformation(current, currentTime);
                     }
                     usleep(current->pcb.remainingTime * 1000);
@@ -259,13 +264,13 @@ static void *processBurst(void *arg_ptr){
                     if(outmode == 2){
                         printf("OUTMODE 2\n");
                         gettimeofday(&now, NULL);
-                        double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                        double currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                         printInformation(current, currentTime);
                     }
                     else if(outmode == 3){
                         printf("OUTMODE 3\n");
                         gettimeofday(&now, NULL);
-                        double currentTime = 1000 * (now.tv_sec - start.tv_sec) + 0.001 * (now.tv_usec - start.tv_usec);
+                        double currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                         printInformation(current, currentTime);
                     }
                     usleep(Q);
@@ -318,7 +323,6 @@ int main(int argc, char* argv[])
     char* qs = "RM";
     /* the scheduling algorithm */
     alg = "RR";
-    infile = "in.txt";
     outfile = "out.txt";
 
     /* pid count */
@@ -326,9 +330,6 @@ int main(int argc, char* argv[])
 
     /* file pointer */
     FILE* filePtr;
-
-    /* the number of load in queues for LM */
-    int* loadNum;
 
     /* the turn number for queues for RM */
     int queueTurn = 0;
@@ -423,14 +424,13 @@ int main(int argc, char* argv[])
         for(int i = 0; i < N; i++){
             readyProcesses[i] = NULL;
         }
-        if(strcmp(qs,"LM") == 0){
-            loadNum = (int*) malloc(N * sizeof(int));
-        }
+        loadNum = (int*) malloc(N * sizeof(int));
     }
     else if(strcmp(sap, "S") == 0){
         readyProcesses = (struct Node**) malloc(sizeof(struct Node*));
         readyQueueNum = 1;
         readyProcesses[0] = NULL;
+        loadNum = (int*) malloc(sizeof(int));
     }
 
     /* THREAD CREATION PART */
@@ -480,7 +480,7 @@ int main(int argc, char* argv[])
                 if(strcmp(qs, "RM") == 0){
                     pthread_mutex_lock(&queueMutex[queueTurn % N]);
                     gettimeofday(&tarrival, 0);
-                    double arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
+                    int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                     if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
                         addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput);
                     }
@@ -491,12 +491,13 @@ int main(int argc, char* argv[])
                     queueTurn++;
                     pidCount++;
                     pthread_mutex_unlock(&queueMutex[queueTurn % N]);
+                    loadNum[queueTurn % N] = loadNum[queueTurn % N] + 1;
                 }
                 if(strcmp(qs,"LM") == 0){
                     int smallestIntPos = findSmallestIntPos(loadNum, N);
                     pthread_mutex_lock(&queueMutex[smallestIntPos]);
                     gettimeofday(&tarrival, 0);
-                    double arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
+                    int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                     if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
                         addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput);
                     }
