@@ -174,7 +174,7 @@ void static printInformation(struct Node** head, int currentTime){
 
         while(now != NULL){
             fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
-            *now = (*now)->next;
+            now = &((*now)->next);
         }
         fprintf(out, "-------END OUTMODE2-------\n"); // will be deleted
     }
@@ -196,7 +196,7 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
             else if(strcmp(alg, "RR") == 0){
                 fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
             }
-            (*now) = (*now)->next;
+            now = &((*now)->next);
         }
         fprintf(out, "-------END OUTMODE3-------\n"); // will be deleted
     }
