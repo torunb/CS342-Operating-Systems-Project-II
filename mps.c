@@ -631,7 +631,7 @@ int main(int argc, char* argv[])
     FILE* out = fopen(outfile, "w");
 
     fprintf(out, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
-    double avgTurnaround;
+    int avgTurnaround;
     int countForAvg;
     while(current != NULL){
         fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", current->pcb.pid, current->pcb.processorId, current->pcb.burstLength, current->pcb.arrivalTime, current->pcb.finishTime, current->pcb.waitingTime, current->pcb.turnaroundTime);
@@ -641,7 +641,7 @@ int main(int argc, char* argv[])
     }
 
     avgTurnaround = avgTurnaround / countForAvg;
-    fprintf(out, "Average turnaround time: %f", avgTurnaround);
+    fprintf(out, "Average turnaround time: %d", avgTurnaround);
 
     for(int i = 0; i < N; i++){
         free(&tids[i]);
