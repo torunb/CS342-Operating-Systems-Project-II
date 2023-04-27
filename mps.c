@@ -166,15 +166,14 @@ void static printInformation(struct Node* head, int currentTime){
         struct Node* now = head;
 
         while(now != NULL){
-            fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
+            fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
             now = now->next;
         }
-
-        fprintf(out, "-------END OUTMODE2-------\n");
+        fprintf(out, "-------END OUTMODE2-------\n"); // will be deleted
     }
 }
 
-void static printOutMode3(struct Node* head){
+void static printOutMode3(struct Node* head, int stayFor, char* alg){
     if(head == NULL){
         printf("Error! Empty list\n");
     }
@@ -184,10 +183,15 @@ void static printOutMode3(struct Node* head){
         struct Node* now = head;
 
         while(now != NULL){
-            fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, now->pcb.remainingTime);
+            if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "SJF") == 0){
+                fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", now->pcb.pid, now->pcb.processorId, now->pcb.remainingTime, now->pcb.remainingTime);
+            }
+            else if(strcmp(alg, "RR") == 0){
+                fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, now->pcb.remainingTime, stayFor);
+            }
             now = now->next;
         }
-        fprintf(out, "-------END OUTMODE3-------\n");
+        fprintf(out, "-------END OUTMODE3-------\n"); // will be deleted
     }
 }
 
@@ -230,10 +234,8 @@ static void *processBurst(void *arg_ptr){
                 }
 
                 else if(outmode == 3){
-                    printf("OUTMODE 3\n");
-                    gettimeofday(&now, NULL);
-                    int currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
-                    printInformation(current, currentTime);
+                    printf("OUTMODE 3\n"); 
+                    printOutMode3(current, current->pcb.remainingTime, alg);
                 }
 
                 usleep(current->pcb.burstLength * 1000); // sleep its burst length time
@@ -256,9 +258,12 @@ static void *processBurst(void *arg_ptr){
                     }
                     else if(outmode == 3){
                         printf("OUTMODE 3\n");
-                        gettimeofday(&now, NULL);
-                        double currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
-                        printInformation(current, currentTime);
+                        if(current->pcb.remainingTime < Q){
+                            printOutMode3(current, current->pcb.remainingTime, alg);
+                        }
+                        else{
+                            printOutMode3(current, Q, alg);
+                        }                       
                     }
                     usleep(current->pcb.remainingTime * 1000);
                     gettimeofday(&finishTime, 0);
@@ -277,9 +282,12 @@ static void *processBurst(void *arg_ptr){
                     }
                     else if(outmode == 3){
                         printf("OUTMODE 3\n");
-                        gettimeofday(&now, NULL);
-                        double currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
-                        printInformation(current, currentTime);
+                        if(current->pcb.remainingTime < Q){
+                            printOutMode3(current, current->pcb.remainingTime, alg);
+                        }
+                        else{
+                            printOutMode3(current, Q, alg);
+                        }    
                     }
                     usleep(Q);
                     current->pcb.remainingTime = current->pcb.remainingTime - Q;
@@ -631,7 +639,7 @@ int main(int argc, char* argv[])
     FILE* out = fopen(outfile, "w");
 
     fprintf(out, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
-    double avgTurnaround;
+    int avgTurnaround;
     int countForAvg;
     while(current != NULL){
         fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", current->pcb.pid, current->pcb.processorId, current->pcb.burstLength, current->pcb.arrivalTime, current->pcb.finishTime, current->pcb.waitingTime, current->pcb.turnaroundTime);
@@ -641,7 +649,7 @@ int main(int argc, char* argv[])
     }
 
     avgTurnaround = avgTurnaround / countForAvg;
-    fprintf(out, "Average turnaround time: %f", avgTurnaround);
+    fprintf(out, "Average turnaround time: %d\n", avgTurnaround);
 
     for(int i = 0; i < N; i++){
         free(&tids[i]);
