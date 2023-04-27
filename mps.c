@@ -471,12 +471,16 @@ int main(int argc, char* argv[])
             readyProcesses[i] = NULL;
         }
         loadNum = (int*) malloc(N * sizeof(int));
+        for(int i = 0; i < N; i++){
+            loadNum[i] = 0;
+        }
     }
     else if(strcmp(sap, "S") == 0){
         readyProcesses = (struct Node**) malloc(sizeof(struct Node*));
         readyQueueNum = 1;
         readyProcesses[0] = NULL;
         loadNum = (int*) malloc(sizeof(int));
+        loadNum[0] = 0;
     }
 
     /* THREAD CREATION PART */
@@ -669,6 +673,8 @@ int main(int argc, char* argv[])
     }
     avgTurnaround = avgTurnaround / countForAvg;
     fprintf(out, "Average turnaround time: %d\n", avgTurnaround);
+
+    fclose(out);
 
     free(tids);
     free(t_args);
