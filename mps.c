@@ -164,7 +164,7 @@ void static printInformation(struct Node* head, int currentTime){
         struct Node* now = head;
 
         while(now != NULL){
-            fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
+            fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
             now = now->next;
         }
         fprintf(out, "-------END OUTMODE2-------\n"); // will be deleted
@@ -182,10 +182,10 @@ void static printOutMode3(struct Node* head, int stayFor, char* alg){
 
         while(now != NULL){
             if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "SJF") == 0){
-                fprintf(out, "pid = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.processorId, now->pcb.remainingTime, now->pcb.remainingTime);
+                fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", now->pcb.pid, now->pcb.processorId, now->pcb.remainingTime, now->pcb.remainingTime);
             }
             else if(strcmp(alg, "RR") == 0){
-                fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, now->pcb.remainingTime, stayFor);
+                fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, now->pcb.remainingTime, stayFor);
             }
             now = now->next;
         }
@@ -641,7 +641,7 @@ int main(int argc, char* argv[])
     }
 
     avgTurnaround = avgTurnaround / countForAvg;
-    fprintf(out, "Average turnaround time: %d", avgTurnaround);
+    fprintf(out, "Average turnaround time: %d\n", avgTurnaround);
 
     for(int i = 0; i < N; i++){
         free(&tids[i]);
