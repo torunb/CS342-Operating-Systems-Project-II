@@ -167,12 +167,11 @@ void static printInformation(struct Node* head, int currentTime){
             fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d", currentTime, now->pcb.processorId, now->pcb.pid, now->pcb.burstLength, now->pcb.remainingTime);
             now = now->next;
         }
-
-        fprintf(out, "-------END OUTMODE2-------\n");
+        fprintf(out, "-------END OUTMODE2-------\n"); // will be deleted
     }
 }
 
-void static printOutMode3(struct Node* head){
+void static printOutMode3(struct Node* head, int stayFor){
     if(head == NULL){
         printf("Error! Empty list\n");
     }
@@ -182,10 +181,10 @@ void static printOutMode3(struct Node* head){
         struct Node* now = head;
 
         while(now != NULL){
-            fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, now->pcb.remainingTime);
+            fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d", now->pcb.pid, now->pcb.remainingTime, now->pcb.processorId, now->pcb.remainingTime, stayFor);
             now = now->next;
         }
-        fprintf(out, "-------END OUTMODE3-------\n");
+        fprintf(out, "-------END OUTMODE3-------\n"); // will be deleted
     }
 }
 
@@ -226,10 +225,8 @@ static void *processBurst(void *arg_ptr){
                 }
 
                 else if(outmode == 3){
-                    printf("OUTMODE 3\n");
-                    gettimeofday(&now, NULL);
-                    int currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
-                    printInformation(current, currentTime);
+                    printf("OUTMODE 3\n"); 
+                    printOutMode3(current, current->pcb.remainingTime);
                 }
 
                 usleep(current->pcb.burstLength * 1000); // sleep its burst length time
@@ -252,9 +249,12 @@ static void *processBurst(void *arg_ptr){
                     }
                     else if(outmode == 3){
                         printf("OUTMODE 3\n");
-                        gettimeofday(&now, NULL);
-                        double currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
-                        printInformation(current, currentTime);
+                        if(current->pcb.remainingTime < Q){
+                            printOutMode3(current, current->pcb.remainingTime);
+                        }
+                        else{
+                            printOutMode3(current, Q);
+                        }                       
                     }
                     usleep(current->pcb.remainingTime * 1000);
                     gettimeofday(&finishTime, 0);
@@ -273,9 +273,12 @@ static void *processBurst(void *arg_ptr){
                     }
                     else if(outmode == 3){
                         printf("OUTMODE 3\n");
-                        gettimeofday(&now, NULL);
-                        double currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
-                        printInformation(current, currentTime);
+                        if(current->pcb.remainingTime < Q){
+                            printOutMode3(current, current->pcb.remainingTime);
+                        }
+                        else{
+                            printOutMode3(current, Q);
+                        }    
                     }
                     usleep(Q);
                     current->pcb.remainingTime = current->pcb.remainingTime - Q;
