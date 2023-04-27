@@ -181,7 +181,7 @@ void static printInformation(struct Node** head, int currentTime){
             }
             now = &((*now)->next);
         }
-        fprintf(out, "-------END OUTMODE2-------\n"); // will be deleted
+        printf("-------END OUTMODE2-------\n"); // will be deleted
     }
 }
 
@@ -213,7 +213,7 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
             }
             now = &((*now)->next);
         }
-        fprintf(out, "-------END OUTMODE3-------\n"); // will be deleted
+        printf("-------END OUTMODE3-------\n"); // will be deleted
     }
 }
 
@@ -673,35 +673,35 @@ int main(int argc, char* argv[])
 	}
 
     struct Node* curr = finishedProcesses;
-
-    FILE* out = fopen(outfile, "w");
-
-    fprintf(out, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
     int avgTurnaround = 0;
     int countForAvg = 0;
-    while(curr != NULL){
-        if(strlen(outfile) == 0){
-            printf("%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
-        }
-        else if(strlen(outfile) > 0){
-            fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
-        }
-        avgTurnaround = avgTurnaround + curr->pcb.turnaroundTime;
-        countForAvg++;
-        curr = curr->next;
-    }
-    avgTurnaround = avgTurnaround / countForAvg;
-
+    
     if(strlen(outfile) == 0){
+        printf("%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
+        while(curr != NULL){
+            printf("%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
+            avgTurnaround = avgTurnaround + curr->pcb.turnaroundTime;
+            countForAvg++;
+            curr = curr->next;
+        }
+        avgTurnaround = avgTurnaround / countForAvg;
         printf("Average turnaround time: %d\n", avgTurnaround);
     }
+
     else if(strlen(outfile) > 0){
+        FILE* out = fopen(outfile, "w");
+        fprintf(out, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
+        while(curr != NULL){
+            fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
+            avgTurnaround = avgTurnaround + curr->pcb.turnaroundTime;
+            countForAvg++;
+            curr = curr->next;
+        }
+        avgTurnaround = avgTurnaround / countForAvg;
         fprintf(out, "Average turnaround time: %d\n", avgTurnaround);
+        fclose(out);
     }
     
-
-    fclose(out);
-
     free(tids);
     free(t_args);
 
