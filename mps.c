@@ -210,7 +210,6 @@ static void *processBurst(void *arg_ptr){
     struct timeval now;
     struct timeval finishTime;
     while(*readyQueue == NULL || !isDummyDetected || loadNum[processorId] > 1){
-        printf("processor id = %d, load num = %d\n", processorId, loadNum[processorId]);
         pthread_mutex_lock(&queueMutex[processorId]);
         if(*readyQueue == NULL){
             pthread_mutex_unlock(&queueMutex[processorId]);
@@ -221,7 +220,7 @@ static void *processBurst(void *arg_ptr){
             isDummyDetected = 1;
         }
         else{
-            printf("Process starts, processor id = %d, pid = %d burst length = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid, (*readyQueue)->pcb.burstLength);
+            //printf("Process starts, processor id = %d, pid = %d burst length = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid, (*readyQueue)->pcb.burstLength);
             int isFinished = 0;
             struct Node** current;
             int finPid, finBurst, finArr, finRem, finFinTime, finTurn, finWaiting, finProcessorId;
@@ -330,7 +329,7 @@ static void *processBurst(void *arg_ptr){
             }
         }  
     }
-    printf("Thread Exited \n");
+    printf("Thread no %d exited\n", processorId);
     pthread_exit(NULL); 
 }
 
@@ -608,7 +607,7 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    printf("The burst pid = %d, burst length = %d", pidCount, num);
+                    //printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeToEnd(&readyProcesses[smallestIntPos], pidCount, smallestIntPos, arrivalTime, num, num, 0, 0, 0);
                 }
 
@@ -647,8 +646,6 @@ int main(int argc, char* argv[])
         pthread_mutex_unlock(&queueMutex[0]);
     }
 
-    struct Node** current = &finishedProcesses;
-
     /* joining threads after their termination */
     for (int tIndex = 0; tIndex < N; tIndex++) {
 	    ret = pthread_join(tids[tIndex], NULL);
@@ -657,25 +654,24 @@ int main(int argc, char* argv[])
 		}
 	}
 
+    struct Node* curr = finishedProcesses;
+
     FILE* out = fopen(outfile, "w");
 
     fprintf(out, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
     int avgTurnaround;
     int countForAvg;
-    while(*current != NULL){
-        fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.burstLength, (*current)->pcb.arrivalTime, (*current)->pcb.finishTime, (*current)->pcb.waitingTime, (*current)->pcb.turnaroundTime);
-        avgTurnaround = avgTurnaround + (*current)->pcb.turnaroundTime;
+    while(curr != NULL){
+        fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
+        avgTurnaround = avgTurnaround + curr->pcb.turnaroundTime;
         countForAvg++;
-        current = &((*current)->next);
+        curr = curr->next;
     }
-
     avgTurnaround = avgTurnaround / countForAvg;
     fprintf(out, "Average turnaround time: %d\n", avgTurnaround);
 
-    for(int i = 0; i < N; i++){
-        free(&tids[i]);
-        free(&t_args[i]);
-    }
+    free(tids);
+    free(t_args);
 
     if(strcmp(sap, "S") == 0){
         struct Node** current = &readyProcesses[0];
@@ -710,10 +706,19 @@ int main(int argc, char* argv[])
         free(queueMutex);
         free(loadNumMutex);
     }
-    
-    if(strcmp(qs,"LM") == 0){
-        free(loadNum);
+
+    free(readyProcesses);
+
+    struct Node* current = finishedProcesses;
+    struct Node* next;
+
+    while(current != NULL){
+        next = current->next;
+        free(current);
+        current = next;
     }
+
+    free(loadNum);
 
     exit(0);
     return(0);
