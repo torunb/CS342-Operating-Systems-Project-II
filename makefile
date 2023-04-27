@@ -1,5 +1,5 @@
 all: mps.c 
-	gcc -Wall -g -o mps mps.c -lpthread
+	gcc -Wall -g -o mps mps.c -lpthread -lm
 
 clean:
 	rm -fr mps *~ output*

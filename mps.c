@@ -48,8 +48,6 @@ struct Node {
 };
 
 struct arg {
-    /* the processor id */
-    int processorId;
     /* the process ready queue */
     struct Node* readyQueue;
 };
@@ -140,7 +138,7 @@ static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, 
 static void deleteHeadNode(struct Node** head){
     struct Node* current = *head;
 
-    if(*head = NULL){
+    if((*head) == NULL){
         return;
     }
 
@@ -187,7 +185,6 @@ void static printOutMode3(struct Node* head){
 
 /* the function to be executed by threads (processors) */
 static void *processBurst(void *arg_ptr){
-    int processorId = ((struct arg *) arg_ptr)->processorId;
     struct Node* readyQueue = ((struct arg *) arg_ptr)->readyQueue;
     struct Node** head = &readyQueue;
     int index = readyQueue->pcb.processorId;
@@ -447,7 +444,6 @@ int main(int argc, char* argv[])
     int ret;
 
     for(int tIndex = 0; tIndex < N; tIndex++){
-        t_args[tIndex].processorId = tIndex;
         if(strcmp(sap, "M") == 0){
             t_args[tIndex].readyQueue = readyProcesses[tIndex];
         }
