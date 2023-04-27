@@ -58,7 +58,6 @@ static void addNodeToEnd(struct Node** head, int pid, int processorId, int arriv
                          int burstLength, int remainingTime, int finishTime, int turnaroundTime,
                          int waitingTime){
     struct Node* nodeNew = (struct Node*) malloc(sizeof(struct Node));
-    printf("pid = %d\n", pid);
     nodeNew->pcb.pid = pid;
     nodeNew->pcb.processorId = processorId;
     nodeNew->pcb.arrivalTime = arrivalTime;
@@ -326,6 +325,7 @@ static void *processBurst(void *arg_ptr){
             }
         }  
     }
+    printf("Thread Exited \n");
     pthread_exit(NULL); 
 }
 
