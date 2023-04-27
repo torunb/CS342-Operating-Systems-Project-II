@@ -20,7 +20,7 @@ pthread_mutex_t *loadNumMutex;
 
 char* alg;
 char* infile;
-char* outfile;
+char* outfile = NULL;
 
 /* the number of load in queues*/
 int* loadNum;
@@ -173,10 +173,10 @@ void static printInformation(struct Node** head, int currentTime){
         struct Node** now = head;
 
         while(now != NULL){
-            if(strlen(outfile) == 0){
+            if(!outfile){
                 printf("time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
             }
-            else if(strlen(outfile) > 0){
+            else if(outfile){
             fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
             }
             now = &((*now)->next);
@@ -196,18 +196,18 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
 
         while(now != NULL){
             if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "SJF") == 0){
-                if(strlen(outfile) == 0){
+                if(!outfile){
                     printf("pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
                 }
-                else if(strlen(outfile) > 0){
+                else if(outfile){
                     fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
                 }
             }
             else if(strcmp(alg, "RR") == 0){
-                if(strlen(outfile) == 0){
+                if(!outfile){
                     printf("pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
                 }
-                else if(strlen(outfile) > 0){
+                else if(outfile){
                     fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
                 }
             }
@@ -676,7 +676,7 @@ int main(int argc, char* argv[])
     int avgTurnaround = 0;
     int countForAvg = 0;
     
-    if(strlen(outfile) == 0){
+    if(!outfile){
         printf("%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
         while(curr != NULL){
             printf("%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
@@ -688,7 +688,7 @@ int main(int argc, char* argv[])
         printf("Average turnaround time: %d\n", avgTurnaround);
     }
 
-    else if(strlen(outfile) > 0){
+    else if(outfile){
         FILE* out = fopen(outfile, "w");
         fprintf(out, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
         while(curr != NULL){
