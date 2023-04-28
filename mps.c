@@ -18,6 +18,10 @@ pthread_mutex_t *queueMutex;
 pthread_mutex_t finishedProcessesMutex;
 pthread_mutex_t *loadNumMutex;
 
+/* the queue selection method */
+char* qs;
+/* the scheduling approach S or M */
+char* sap;
 char* alg;
 char* infile = NULL;
 char* outfile = NULL;
@@ -116,7 +120,7 @@ static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, 
     nodeNew->pcb.arrivalTime = arrivalTime;
     nodeNew->pcb.burstLength = burstLength;
     nodeNew->pcb.remainingTime = remainingTime;
-        nodeNew->pcb.finishTime = finishTime;
+    nodeNew->pcb.finishTime = finishTime;
     nodeNew->pcb.turnaroundTime = turnaroundTime;
     nodeNew->pcb.waitingTime = waitingTime;
     nodeNew->next = NULL;
@@ -159,7 +163,7 @@ static void deleteHeadNode(struct Node** head, int processorId){
     free(current);
     pthread_mutex_lock(&loadNumMutex[processorId]);
     loadNum[processorId]--;
-     pthread_mutex_unlock(&loadNumMutex[processorId]);
+    pthread_mutex_unlock(&loadNumMutex[processorId]);
     return;
 }
 
@@ -172,7 +176,7 @@ void static printInformation(struct Node** head, int currentTime){
         FILE* out = fopen(outfile, "w");
         struct Node** now = head;
 
-        while(now != NULL){
+        while(*now != NULL){
             if(!outfile){
                 printf("time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
             }
@@ -182,6 +186,7 @@ void static printInformation(struct Node** head, int currentTime){
             now = &((*now)->next);
         }
         printf("-------END OUTMODE2-------\n"); // will be deleted
+        fclose(out);
     }
 }
 
@@ -214,6 +219,7 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
             now = &((*now)->next);
         }
         printf("-------END OUTMODE3-------\n"); // will be deleted
+        fclose(out);
     }
 }
 
@@ -224,10 +230,21 @@ static void *processBurst(void *arg_ptr){
     int isDummyDetected = 0;
     struct timeval now;
     struct timeval finishTime;
-    while(*readyQueue == NULL || !isDummyDetected || loadNum[processorId] > 1){
-        pthread_mutex_lock(&queueMutex[processorId]);
+    int queueId;
+
+    if(strcmp(qs, "NA") == 0){
+        queueId = 0;
+    }
+    else {
+        queueId = processorId;
+    }
+
+    pthread_mutex_lock(&loadNumMutex[queueId]);
+    while(*readyQueue == NULL || !isDummyDetected || loadNum[queueId] > 1){
+        pthread_mutex_unlock(&loadNumMutex[queueId]);
+        pthread_mutex_lock(&queueMutex[queueId]);
         if(*readyQueue == NULL){
-            pthread_mutex_unlock(&queueMutex[processorId]);
+            pthread_mutex_unlock(&queueMutex[queueId]);
             usleep(1000);
         }
         else if((*readyQueue)->pcb.pid == -1){
@@ -235,7 +252,8 @@ static void *processBurst(void *arg_ptr){
             isDummyDetected = 1;
         }
         else{
-            //printf("Process starts, processor id = %d, pid = %d burst length = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid, (*readyQueue)->pcb.burstLength);
+            (*readyQueue)->pcb.processorId = processorId;
+            printf("Process starts, processor id = %d, pid = %d burst length = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid, (*readyQueue)->pcb.burstLength);
             int isFinished = 0;
             struct Node** current;
             int finPid, finBurst, finArr, finRem, finFinTime, finTurn, finWaiting, finProcessorId;
@@ -270,13 +288,13 @@ static void *processBurst(void *arg_ptr){
                 finTurn = (*current)->pcb.turnaroundTime;
                 finWaiting = (*current)->pcb.waitingTime;
                 finProcessorId = (*current)->pcb.processorId;
-                deleteHeadNode(readyQueue, (*current)->pcb.processorId);
-                pthread_mutex_unlock(&queueMutex[processorId]);
+                deleteHeadNode(readyQueue, queueId);
+                pthread_mutex_unlock(&queueMutex[queueId]);
             }
 
             if(strcmp(alg, "RR") == 0){
                 current = readyQueue;
-                if((*current)->pcb.remainingTime < Q){
+                if((*current)->pcb.remainingTime <= Q){
                     if(outmode == 2){
                         printf("OUTMODE 2\n");
                         gettimeofday(&now, NULL);
@@ -307,7 +325,7 @@ static void *processBurst(void *arg_ptr){
                     finTurn = (*current)->pcb.turnaroundTime;
                     finWaiting = (*current)->pcb.waitingTime;
                     finProcessorId = (*current)->pcb.processorId;
-                    deleteHeadNode(readyQueue, (*current)->pcb.processorId);
+                    deleteHeadNode(readyQueue, queueId);
                 }
                 else {
                     if(outmode == 2){
@@ -329,9 +347,9 @@ static void *processBurst(void *arg_ptr){
                     (*current)->pcb.remainingTime = (*current)->pcb.remainingTime - Q;
                     addNodeToEnd(readyQueue, (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, 
                                 (*current)->pcb.burstLength, (*current)->pcb.remainingTime, 0, 0 , 0);
-                    deleteHeadNode(readyQueue, (*current)->pcb.processorId);
+                    deleteHeadNode(readyQueue, queueId);
                 }
-                pthread_mutex_unlock(&queueMutex[processorId]);
+                pthread_mutex_unlock(&queueMutex[queueId]);
             }
 
             if(isFinished)
@@ -342,8 +360,10 @@ static void *processBurst(void *arg_ptr){
                              finTurn, finWaiting);
                 pthread_mutex_unlock(&finishedProcessesMutex);
             }
-        }  
+        }
+        pthread_mutex_lock(&loadNumMutex[queueId]);  
     }
+    pthread_mutex_unlock(&loadNumMutex[queueId]);
     printf("Thread no %d exited\n", processorId);
     pthread_exit(NULL); 
 }
@@ -375,9 +395,9 @@ int main(int argc, char* argv[])
     int T=200, T1=10, T2=1000, L=100, L1=10, L2=500, pc=10;
     outmode = 1;
     /* the scheduling approach S or M */
-    char* sap = "M";
+    sap = "M";
     /* the queue selection method */
-    char* qs = "RM";
+    qs = "RM";
     /* the scheduling algorithm */
     alg = "RR";
 
@@ -470,8 +490,8 @@ int main(int argc, char* argv[])
     else if(strcmp(sap, "S") == 0){
         queueMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
         loadNumMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
-        pthread_mutex_init(&queueMutex[0], NULL);
-        pthread_mutex_init(&loadNumMutex[0], NULL);
+        pthread_mutex_init(queueMutex, NULL);
+        pthread_mutex_init(loadNumMutex, NULL);
     }
 
     /* initialize the finished processes mutex lock*/
@@ -513,7 +533,7 @@ int main(int argc, char* argv[])
             t_args[tIndex].readyQueue = &readyProcesses[tIndex];
         }
         else if(strcmp(sap, "S") == 0){
-            t_args[tIndex].readyQueue = &readyProcesses[0];
+            t_args[tIndex].readyQueue = readyProcesses;
         }
         ret = pthread_create(&(tids[tIndex]), NULL, processBurst,
                              (void *) &(t_args[tIndex]));
@@ -533,6 +553,7 @@ int main(int argc, char* argv[])
 
         if(filePtr == NULL)
         {
+            printf("Error: there is no input wile with the given name \n");
             exit(1);
         }
 
@@ -549,10 +570,12 @@ int main(int argc, char* argv[])
                     gettimeofday(&tarrival, 0);
                     int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                     if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
                         addNodeToEnd(&readyProcesses[pos],pidCount,pos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
 
                     if(strcmp(alg,"SJF") == 0){
+                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
                         addNodeAccordingToSJF(&readyProcesses[pos],pidCount,pos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
                     queueTurn++;
@@ -568,10 +591,12 @@ int main(int argc, char* argv[])
                     gettimeofday(&tarrival, 0);
                     int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                     if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
                         addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
 
                     if(strcmp(alg,"SJF") == 0){
+                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
                         addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
                     pidCount++;
@@ -579,6 +604,25 @@ int main(int argc, char* argv[])
                     pthread_mutex_lock(&loadNumMutex[smallestIntPos]);
                     loadNum[smallestIntPos] = loadNum[smallestIntPos] + 1;
                     pthread_mutex_unlock(&loadNumMutex[smallestIntPos]);
+                }
+                if(strcmp(qs, "NA") == 0){
+                    pthread_mutex_lock(&queueMutex[0]);
+                    gettimeofday(&tarrival, 0);
+                    int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
+                    if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
+                        addNodeToEnd(&readyProcesses[0],pidCount,-1, arrivalTime, timeInput, timeInput, 0, 0, 0);
+                    }
+
+                    if(strcmp(alg,"SJF") == 0){
+                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
+                        addNodeAccordingToSJF(&readyProcesses[0],pidCount, -1, arrivalTime, timeInput, timeInput, 0, 0, 0);
+                    }
+                    pidCount++;
+                    pthread_mutex_unlock(&queueMutex[0]);
+                    pthread_mutex_lock(&loadNumMutex[0]);
+                    loadNum[0] = loadNum[0] + 1;
+                    pthread_mutex_unlock(&loadNumMutex[0]);
                 }
             }
 
@@ -611,10 +655,12 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeToEnd(&readyProcesses[pos],pidCount,pos, arrivalTime, num, num, 0, 0, 0);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
+                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeAccordingToSJF(&readyProcesses[pos],pidCount,pos, arrivalTime, num, num, 0, 0, 0);
                 }
                 queueTurn++;
@@ -627,16 +673,36 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    //printf("The burst pid = %d, burst length = %d \n", pidCount, num);
+                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeToEnd(&readyProcesses[smallestIntPos], pidCount, smallestIntPos, arrivalTime, num, num, 0, 0, 0);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
+                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, num, num, 0, 0, 0);
                 }
                 pidCount++;
                 pthread_mutex_unlock(&queueMutex[smallestIntPos]);
                 loadNum[smallestIntPos] = loadNum[smallestIntPos] + 1;
+            }
+            if(strcmp(qs, "NA") == 0){
+                pthread_mutex_lock(&queueMutex[0]);
+                gettimeofday(&tarrival, 0);
+                int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
+                if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
+                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
+                    addNodeToEnd(&readyProcesses[0],pidCount,-1, arrivalTime, num, num, 0, 0, 0);
+                }
+
+                if(strcmp(alg,"SJF") == 0){
+                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
+                    addNodeAccordingToSJF(&readyProcesses[0],pidCount, -1, arrivalTime, num, num, 0, 0, 0);
+                }
+                pidCount++;
+                pthread_mutex_unlock(&queueMutex[0]);
+                pthread_mutex_lock(&loadNumMutex[0]);
+                loadNum[0] = loadNum[0] + 1;
+                pthread_mutex_unlock(&loadNumMutex[0]);
             }
 
             //iat process
