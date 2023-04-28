@@ -270,7 +270,6 @@ static void *processBurst(void *arg_ptr){
     pthread_mutex_lock(&queueMutex[queueId]);
     int length = getQueueLength(*readyQueue);
     while(*readyQueue == NULL || !isDummyDetected || length > 1){
-        printf("the length is %d\n", length);
         if(*readyQueue == NULL){
             pthread_mutex_unlock(&queueMutex[queueId]);
             usleep(1000);
@@ -376,7 +375,7 @@ static void *processBurst(void *arg_ptr){
                             printOutMode3(current, Q, alg);
                         }    
                     }
-                    usleep(Q);
+                    usleep(Q * 1000);
                     (*current)->pcb.remainingTime = (*current)->pcb.remainingTime - Q;
                     addNodeToEnd(readyQueue, (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, 
                                 (*current)->pcb.burstLength, (*current)->pcb.remainingTime, 0, 0 , 0);
