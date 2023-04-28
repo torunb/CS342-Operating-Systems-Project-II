@@ -289,7 +289,9 @@ static void *processBurst(void *arg_ptr){
 
     pthread_mutex_lock(&queueMutex[queueId]);
     int length = getQueueLength(*readyQueue);
+    pthread_mutex_unlock(&queueMutex[queueId]);
     while(*readyQueue == NULL || !isDummyDetected || length > 1){
+        pthread_mutex_lock(&queueMutex[queueId]);
         if(*readyQueue == NULL){
             pthread_mutex_unlock(&queueMutex[queueId]);
             usleep(1000);
@@ -404,9 +406,9 @@ static void *processBurst(void *arg_ptr){
             }
         }
         pthread_mutex_lock(&queueMutex[queueId]); 
-        length = getQueueLength(*readyQueue); 
+        length = getQueueLength(*readyQueue);
+        pthread_mutex_unlock(&queueMutex[queueId]); 
     }
-    pthread_mutex_unlock(&queueMutex[queueId]);
     pthread_exit(NULL); 
 }
 
