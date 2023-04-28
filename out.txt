@@ -1,9 +1,45 @@
+pid = 0, remaining time = 80, cpu = 0, it will stay for = 20
+pid = 0, remaining time = 60, cpu = 0, it will stay for = 20
+pid = 0, remaining time = 40, cpu = 0, it will stay for = 20
+pid = 0, remaining time = 20, cpu = 0, it will stay for = 20
+pid = 1, remaining time = 200, cpu = 1, it will stay for = 20
+pid = 2, remaining time = 50, cpu = 2, it will stay for = 20
+pid = 1, remaining time = 180, cpu = 1, it will stay for = 20
+pid = 2, remaining time = 30, cpu = 2, it will stay for = 20
+pid = 1, remaining time = 160, cpu = 1, it will stay for = 20
+pid = 2, remaining time = 10, cpu = 2, it will stay for = 10
+pid = 1, remaining time = 140, cpu = 1, it will stay for = 20
+pid = 3, remaining time = 120, cpu = 3, it will stay for = 20
+pid = 1, remaining time = 120, cpu = 1, it will stay for = 20
+pid = 3, remaining time = 100, cpu = 3, it will stay for = 20
+pid = 1, remaining time = 100, cpu = 1, it will stay for = 20
+pid = 3, remaining time = 80, cpu = 3, it will stay for = 20
+pid = 1, remaining time = 80, cpu = 1, it will stay for = 20
+pid = 3, remaining time = 60, cpu = 3, it will stay for = 20
+pid = 1, remaining time = 60, cpu = 1, it will stay for = 20
+pid = 3, remaining time = 40, cpu = 3, it will stay for = 20
+pid = 1, remaining time = 40, cpu = 1, it will stay for = 20
+pid = 1, remaining time = 20, cpu = 1, it will stay for = 20
+pid = 3, remaining time = 20, cpu = 3, it will stay for = 20
+pid = 4, remaining time = 100, cpu = 4, it will stay for = 20
+pid = 4, remaining time = 80, cpu = 4, it will stay for = 20
+pid = 5, remaining time = 40, cpu = 5, it will stay for = 20
+pid = 4, remaining time = 60, cpu = 4, it will stay for = 20
+pid = 5, remaining time = 20, cpu = 5, it will stay for = 20
+pid = 6, remaining time = 80, cpu = 6, it will stay for = 20
+pid = 4, remaining time = 40, cpu = 4, it will stay for = 20
+pid = 6, remaining time = 60, cpu = 6, it will stay for = 20
+pid = 4, remaining time = 20, cpu = 4, it will stay for = 20
+pid = 6, remaining time = 40, cpu = 6, it will stay for = 20
+pid = 6, remaining time = 20, cpu = 6, it will stay for = 20
+
 pid        cpu        burstlen   arv        finish     waitingtime  turnaround
-0          0          80         0          81         1            81        
-1          0          200        100        301        1            201       
-2          0          50         301        352        1            51        
-3          0          120        371        492        1            121       
-4          0          100        621        722        1            101       
-5          0          40         722        764        2            42        
-6          0          80         764        845        1            81        
-Average turnaround time: 96
+0          0          80         190        291        21           101       
+2          2          50         305        356        1            51        
+1          1          200        295        496        1            201       
+3          3          120        375        497        2            122       
+5          5          40         645        729        44           84        
+4          4          100        625        750        25           125       
+6          6          80         678        790        32           112       
+
+Average turnaround time: 113

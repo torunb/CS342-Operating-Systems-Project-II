@@ -26,6 +26,7 @@ char* sap;
 char* alg;
 char* infile = NULL;
 char* outfile = NULL;
+FILE* outFilePtr;
 
 int outmode; // OUTMODE 
 
@@ -130,9 +131,9 @@ static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, 
         return;
     }
 
-    if(last->pcb.burstLength > nodeNew->pcb.burstLength){
+    if((*head)->pcb.burstLength > nodeNew->pcb.burstLength){
+        nodeNew->next = *head;
         *head = nodeNew;
-        nodeNew->next = last;
         return;
     }
 
@@ -168,20 +169,17 @@ void static printInformation(struct Node** head, int currentTime){
     }
     
     else{
-        FILE* out = fopen(outfile, "w");
         struct Node** now = head;
 
         while(*now != NULL){
-            if(!outfile){
+            if(!outfile && (*now)->pcb.pid != -1){
                 printf("time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
             }
-            else if(outfile){
-                fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
+            else if(outfile && (*now)->pcb.pid != -1){
+                fprintf(outFilePtr, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
             }
             now = &((*now)->next);
         }
-        printf("-------END OUTMODE2-------\n"); // will be deleted
-        fclose(out);
     }
 }
 
@@ -191,30 +189,27 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
     }
 
     else{
-        FILE* out = fopen(outfile, "w");
         struct Node** now = head;
 
         while(*now != NULL){
             if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "SJF") == 0){
-                if(!outfile){
+                if(!outfile && (*now)->pcb.pid != -1){
                     printf("pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
                 }
-                else if(outfile){
-                    fprintf(out, "pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
+                else if(outfile && (*now)->pcb.pid != -1){
+                    fprintf(outFilePtr, "pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
                 }
             }
             else if(strcmp(alg, "RR") == 0){
-                if(!outfile){
+                if(!outfile && (*now)->pcb.pid != -1){
                     printf("pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
                 }
-                else if(outfile){
-                    fprintf(out, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
+                else if(outfile && (*now)->pcb.pid != -1){
+                    fprintf(outFilePtr, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
                 }
             }
             now = &((*now)->next);
         }
-        printf("-------END OUTMODE3-------\n"); // will be deleted
-        fclose(out);
     }
 }
 
@@ -275,7 +270,6 @@ static void *processBurst(void *arg_ptr){
             usleep(1000);
         }
         else if((*readyQueue)->pcb.pid == -1){
-            printf("dummy detected\n");
             isDummyDetected = 1;
             addNodeToEndDummy(readyQueue, processorId);
             deleteHeadNode(readyQueue);
@@ -283,7 +277,6 @@ static void *processBurst(void *arg_ptr){
         }
         else{
             (*readyQueue)->pcb.processorId = processorId;
-            printf("Process starts, processor id = %d, pid = %d rem length = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid, (*readyQueue)->pcb.remainingTime);
             int isFinished = 0;
             struct Node** current;
             int finPid, finBurst, finArr, finRem, finFinTime, finTurn, finWaiting, finProcessorId;
@@ -293,14 +286,12 @@ static void *processBurst(void *arg_ptr){
                 current = readyQueue;
 
                 if(outmode == 2){
-                    printf("OUTMODE 2\n");
                     gettimeofday(&now, NULL);
                     int currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                     printInformation(current, currentTime);
                 }
 
                 else if(outmode == 3){
-                    printf("OUTMODE 3\n"); 
                     printOutMode3(current, (*current)->pcb.remainingTime, alg);
                 }
                 usleep((*current)->pcb.burstLength * 1000); 
@@ -326,13 +317,11 @@ static void *processBurst(void *arg_ptr){
                 current = readyQueue;
                 if((*current)->pcb.remainingTime <= Q){
                     if(outmode == 2){
-                        printf("OUTMODE 2\n");
                         gettimeofday(&now, NULL);
                         int currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                         printInformation(current, currentTime);
                     }
                     else if(outmode == 3){
-                        printf("OUTMODE 3\n");
                         if((*current)->pcb.remainingTime < Q){
                             printOutMode3(current, (*current)->pcb.remainingTime, alg);
                         }
@@ -355,19 +344,15 @@ static void *processBurst(void *arg_ptr){
                     finTurn = (*current)->pcb.turnaroundTime;
                     finWaiting = (*current)->pcb.waitingTime;
                     finProcessorId = (*current)->pcb.processorId;
-                    printf("pid = %d, burst = %d, arr = %d, rem = %d, fin = %d, turn = %d, waiting= %d, processorId = %d\n",
-                           finPid,finBurst,finArr,finRem,finFinTime,finTurn,finWaiting,finProcessorId);
                     deleteHeadNode(readyQueue);
                 }
                 else {
                     if(outmode == 2){
-                        printf("OUTMODE 2\n");
                         gettimeofday(&now, NULL);
                         int currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                         printInformation(current, currentTime);
                     }
                     else if(outmode == 3){
-                        printf("OUTMODE 3\n");
                         if((*current)->pcb.remainingTime < Q){
                             printOutMode3(current, (*current)->pcb.remainingTime, alg);
                         }
@@ -397,7 +382,6 @@ static void *processBurst(void *arg_ptr){
         length = getQueueLength(*readyQueue); 
     }
     pthread_mutex_unlock(&queueMutex[queueId]);
-    printf("Thread no %d exited\n", processorId);
     pthread_exit(NULL); 
 }
 
@@ -461,6 +445,7 @@ int main(int argc, char* argv[])
         }
         else if(strcmp(cur, "-o") == 0) {
             outfile = argv[++i];
+            outFilePtr = fopen(outfile, "w");
         }
         else if(strcmp(cur, "-r") == 0) {
             T=atoi(argv[++i]); T1=atoi(argv[++i]); T2=atoi(argv[++i]);
@@ -469,7 +454,7 @@ int main(int argc, char* argv[])
             isRSpecified = 1;
         }
         else {
-            printf("[-] Ignoring the unknown flag/argument: %s", cur);
+            printf("Ignore unknown argument: %s", cur);
         }
     }
 
@@ -563,7 +548,7 @@ int main(int argc, char* argv[])
 
         if(filePtr == NULL)
         {
-            printf("Error: there is no input wile with the given name \n");
+            printf("Error: there is no input file with the given name \n");
             exit(1);
         }
 
@@ -580,12 +565,10 @@ int main(int argc, char* argv[])
                     gettimeofday(&tarrival, 0);
                     int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                     if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
                         addNodeToEnd(&readyProcesses[pos],pidCount,pos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
 
                     if(strcmp(alg,"SJF") == 0){
-                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
                         addNodeAccordingToSJF(&readyProcesses[pos],pidCount,pos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
                     queueTurn++;
@@ -598,12 +581,10 @@ int main(int argc, char* argv[])
                     gettimeofday(&tarrival, 0);
                     int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                     if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
                         addNodeToEnd(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
 
                     if(strcmp(alg,"SJF") == 0){
-                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
                         addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
                     pidCount++;
@@ -614,12 +595,10 @@ int main(int argc, char* argv[])
                     gettimeofday(&tarrival, 0);
                     int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                     if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
                         addNodeToEnd(&readyProcesses[0],pidCount,-1, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
 
                     if(strcmp(alg,"SJF") == 0){
-                        printf("The burst pid = %d, burst length = %d \n", pidCount, timeInput);
                         addNodeAccordingToSJF(&readyProcesses[0],pidCount, -1, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
                     pidCount++;
@@ -656,12 +635,10 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeToEnd(&readyProcesses[pos],pidCount,pos, arrivalTime, num, num, 0, 0, 0);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeAccordingToSJF(&readyProcesses[pos],pidCount,pos, arrivalTime, num, num, 0, 0, 0);
                 }
                 queueTurn++;
@@ -674,12 +651,10 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeToEnd(&readyProcesses[smallestIntPos], pidCount, smallestIntPos, arrivalTime, num, num, 0, 0, 0);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeAccordingToSJF(&readyProcesses[smallestIntPos],pidCount,smallestIntPos, arrivalTime, num, num, 0, 0, 0);
                 }
                 pidCount++;
@@ -690,12 +665,10 @@ int main(int argc, char* argv[])
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeToEnd(&readyProcesses[0],pidCount,-1, arrivalTime, num, num, 0, 0, 0);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    printf("The burst pid = %d, burst length = %d \n", pidCount, num);
                     addNodeAccordingToSJF(&readyProcesses[0],pidCount, -1, arrivalTime, num, num, 0, 0, 0);
                 }
                 pidCount++;
@@ -742,6 +715,7 @@ int main(int argc, char* argv[])
     int countForAvg = 0;
     
     if(!outfile){
+        printf("\n");
         printf("%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
         while(curr != NULL){
             printf("%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
@@ -750,25 +724,29 @@ int main(int argc, char* argv[])
             curr = curr->next;
         }
         avgTurnaround = avgTurnaround / countForAvg;
+        printf("\n");
         printf("Average turnaround time: %d\n", avgTurnaround);
     }
 
     else if(outfile){
-        FILE* out = fopen(outfile, "w");
-        fprintf(out, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
+        fprintf(outFilePtr, "\n");
+        fprintf(outFilePtr, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
         while(curr != NULL){
-            fprintf(out, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
+            fprintf(outFilePtr, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
             avgTurnaround = avgTurnaround + curr->pcb.turnaroundTime;
             countForAvg++;
             curr = curr->next;
         }
         avgTurnaround = avgTurnaround / countForAvg;
-        fprintf(out, "Average turnaround time: %d\n", avgTurnaround);
-        fclose(out);
+        fprintf(outFilePtr, "\n");
+        fprintf(outFilePtr, "Average turnaround time: %d\n", avgTurnaround);
     }
     
     free(tids);
     free(t_args);
+
+    if(outfile)
+        fclose(outFilePtr);
 
     if(strcmp(sap, "S") == 0){
         struct Node** current = &readyProcesses[0];
