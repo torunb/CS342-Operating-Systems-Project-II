@@ -243,24 +243,24 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
     }
 }
 
-static int getQueueLength(struct Node* head){
+static int getQueueLength(struct Node* head, int queueId){
+    pthread_mutex_unlock(&queueMutex[queueId]);
+    pthread_mutex_lock(&queueMutex[queueId]);
     int count = 0;
     struct Node* current = head;
     while (current != NULL) {
         count++;
         current = current->next;
     }
+    pthread_mutex_unlock(&queueMutex[queueId]);
     return count;
 }
 
 /*function to find the smallest integer position in an array*/
 static int findSmallestIntPos(struct Node** readyProcesses, int numOfElements){
-    for(int i = 0; i < N; i++){
-        pthread_mutex_lock(&queueMutex[i]);
-    }
     int arr[N];
     for(int i = 0; i < N; i++){
-        arr[i] = getQueueLength(readyProcesses[i]);
+        arr[i] = getQueueLength(readyProcesses[i], i);
     }
     int val = arr[0];
     int position = 0;
@@ -270,9 +270,7 @@ static int findSmallestIntPos(struct Node** readyProcesses, int numOfElements){
             position = i;
         }
     }
-    for(int i = 0; i < N; i++){
-        pthread_mutex_unlock(&queueMutex[i]);
-    }
+
     return position;
 }
 
@@ -293,8 +291,10 @@ static void *processBurst(void *arg_ptr){
     }
 
     pthread_mutex_lock(&queueMutex[queueId]);
-    int length = getQueueLength(*readyQueue);
+    int length = getQueueLength(*readyQueue, queueId);
+    pthread_mutex_unlock(&queueMutex[queueId]);
     while(*readyQueue == NULL || !isDummyDetected || length > 1){
+        pthread_mutex_lock(&queueMutex[queueId]);
         if(*readyQueue == NULL){
             pthread_cond_wait(&cv[queueId],&queueMutex[queueId]);
             pthread_mutex_unlock(&queueMutex[queueId]);
@@ -409,9 +409,9 @@ static void *processBurst(void *arg_ptr){
             }
         }
         pthread_mutex_lock(&queueMutex[queueId]); 
-        length = getQueueLength(*readyQueue); 
+        length = getQueueLength(*readyQueue, queueId);
+        pthread_mutex_unlock(&queueMutex[queueId]);
     }
-    pthread_mutex_unlock(&queueMutex[queueId]);
     pthread_exit(NULL); 
 }
 

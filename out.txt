@@ -28,18 +28,18 @@ pid = 6, remaining time = 20, cpu = 6, it will stay for = 20
 pid = 5, remaining time = 60, cpu = 5, it will stay for = 20
 pid = 5, remaining time = 40, cpu = 5, it will stay for = 20
 pid = 7, remaining time = 80, cpu = 7, it will stay for = 20
-pid = 7, remaining time = 60, cpu = 7, it will stay for = 20
 pid = 5, remaining time = 20, cpu = 5, it will stay for = 20
+pid = 7, remaining time = 60, cpu = 7, it will stay for = 20
 pid = 7, remaining time = 40, cpu = 7, it will stay for = 20
 pid = 7, remaining time = 20, cpu = 7, it will stay for = 20
 
 pid        cpu        burstlen   arv        finish     waitingtime  turnaround
-1          1          80         176        273        17           97        
-2          3          50         287        338        1            51        
-3          4          120        358        479        1            121       
-4          2          200        277        479        2            202       
-5          6          40         628        757        89           129       
-6          5          100        608        797        89           189       
-7          7          80         661        837        96           176       
+1          1          80         177        280        23           103       
+2          3          50         295        347        2            52        
+3          4          120        365        488        3            123       
+4          2          200        285        488        3            203       
+5          6          40         636        730        54           94        
+6          5          100        616        770        54           154       
+7          7          80         667        811        64           144       
 
-Average turnaround time: 137
+Average turnaround time: 124
