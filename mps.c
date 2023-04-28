@@ -19,7 +19,7 @@ pthread_mutex_t finishedProcessesMutex;
 pthread_mutex_t *loadNumMutex;
 
 char* alg;
-char* infile;
+char* infile = NULL;
 char* outfile = NULL;
 
 /* the number of load in queues*/
@@ -177,7 +177,7 @@ void static printInformation(struct Node** head, int currentTime){
                 printf("time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
             }
             else if(outfile){
-            fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
+                fprintf(out, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
             }
             now = &((*now)->next);
         }
