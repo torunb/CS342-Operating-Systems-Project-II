@@ -1,0 +1,10 @@
+pid = 0, remaining time = 80, cpu = 0, it will stay for = 20
+
+id = -1, remaining time = 32767, cpu = 6, it will stay for = 20
+        -79          1         
+1          1          200        100        102        -198         2         
+2          2          50         110        121        -39          11        
+3          3          120        180        182        -118         2         
+4          4          100        430        433        -97          3         
+5          5          40         451        452        -39          1         
+Average turnaround time: 3

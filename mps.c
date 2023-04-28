@@ -186,7 +186,7 @@ void static printInformation(struct Node** head, int currentTime){
 }
 
 void static printOutMode3(struct Node** head, int stayFor, char* alg){
-    if(head == NULL){
+    if(*head == NULL){
         printf("Error! Empty list\n");
     }
 
@@ -194,7 +194,7 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
         FILE* out = fopen(outfile, "w");
         struct Node** now = head;
 
-        while(now != NULL){
+        while(*now != NULL){
             if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "SJF") == 0){
                 if(!outfile){
                     printf("pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
@@ -327,9 +327,9 @@ static void *processBurst(void *arg_ptr){
                     }
                     usleep(Q);
                     (*current)->pcb.remainingTime = (*current)->pcb.remainingTime - Q;
-                    deleteHeadNode(readyQueue, (*current)->pcb.processorId);
                     addNodeToEnd(readyQueue, (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, 
                                 (*current)->pcb.burstLength, (*current)->pcb.remainingTime, 0, 0 , 0);
+                    deleteHeadNode(readyQueue, (*current)->pcb.processorId);
                 }
                 pthread_mutex_unlock(&queueMutex[processorId]);
             }
@@ -544,22 +544,23 @@ int main(int argc, char* argv[])
         while(fscanf(filePtr, "%s %d", inputType, &timeInput) != EOF){
             if(strcmp(inputType, "PL") == 0){
                 if(strcmp(qs, "RM") == 0){
-                    pthread_mutex_lock(&queueMutex[queueTurn % N]);
+                    int pos = queueTurn % N;
+                    pthread_mutex_lock(&queueMutex[pos]);
                     gettimeofday(&tarrival, 0);
                     int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                     if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                        addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput, 0, 0, 0);
+                        addNodeToEnd(&readyProcesses[pos],pidCount,pos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
 
                     if(strcmp(alg,"SJF") == 0){
-                        addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, timeInput, timeInput, 0, 0, 0);
+                        addNodeAccordingToSJF(&readyProcesses[pos],pidCount,pos, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
                     queueTurn++;
                     pidCount++;
-                    pthread_mutex_unlock(&queueMutex[queueTurn % N]);
-                    pthread_mutex_lock(&loadNumMutex[queueTurn % N]);
-                    loadNum[queueTurn % N] = loadNum[queueTurn % N] + 1;
-                    pthread_mutex_unlock(&loadNumMutex[queueTurn % N]);
+                    pthread_mutex_unlock(&queueMutex[pos]);
+                    pthread_mutex_lock(&loadNumMutex[pos]);
+                    loadNum[pos] = loadNum[pos] + 1;
+                    pthread_mutex_unlock(&loadNumMutex[pos]);
                 }
                 if(strcmp(qs,"LM") == 0){
                     int smallestIntPos = findSmallestIntPos(loadNum, N);
@@ -605,19 +606,20 @@ int main(int argc, char* argv[])
 
             //burst process
             if(strcmp(qs, "RM") == 0){
-                pthread_mutex_lock(&queueMutex[queueTurn % N]);
+                int pos = queueTurn % N;
+                pthread_mutex_lock(&queueMutex[pos]);
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
                 if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "RR") == 0){
-                    addNodeToEnd(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num, 0, 0, 0);
+                    addNodeToEnd(&readyProcesses[pos],pidCount,pos, arrivalTime, num, num, 0, 0, 0);
                 }
 
                 if(strcmp(alg,"SJF") == 0){
-                    addNodeAccordingToSJF(&readyProcesses[queueTurn % N],pidCount,queueTurn % N, arrivalTime, num, num, 0, 0, 0);
+                    addNodeAccordingToSJF(&readyProcesses[pos],pidCount,pos, arrivalTime, num, num, 0, 0, 0);
                 }
                 queueTurn++;
                 pidCount++;
-                pthread_mutex_unlock(&queueMutex[queueTurn % N]);
+                pthread_mutex_unlock(&queueMutex[pos]);
             }
             if(strcmp(qs,"LM") == 0){
                 int smallestIntPos = findSmallestIntPos(loadNum, N);
