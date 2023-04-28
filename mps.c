@@ -16,8 +16,9 @@ int Q = 20;
 
 pthread_mutex_t *queueMutex;
 pthread_mutex_t finishedProcessesMutex;
-pthread_mutex_t *loadNumMutex;
 
+/* the number of processors */
+int N;
 /* the queue selection method */
 char* qs;
 /* the scheduling approach S or M */
@@ -25,9 +26,6 @@ char* sap;
 char* alg;
 char* infile = NULL;
 char* outfile = NULL;
-
-/* the number of load in queues*/
-int* loadNum;
 
 int outmode; // OUTMODE 
 
@@ -151,7 +149,7 @@ static void addNodeAccordingToSJF(struct Node** head, int pid, int processorId, 
 }
 
 /* function to delete the head node in linked list */
-static void deleteHeadNode(struct Node** head, int processorId){
+static void deleteHeadNode(struct Node** head){
     struct Node* current = *head;
 
     if(*head == NULL){
@@ -161,9 +159,6 @@ static void deleteHeadNode(struct Node** head, int processorId){
     *head = current->next;
 
     free(current);
-    pthread_mutex_lock(&loadNumMutex[processorId]);
-    loadNum[processorId]--;
-    pthread_mutex_unlock(&loadNumMutex[processorId]);
     return;
 }
 
@@ -223,6 +218,39 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
     }
 }
 
+static int getQueueLength(struct Node* head){
+    int count = 0;
+    struct Node* current = head;
+    while (current != NULL) {
+        count++;
+        current = current->next;
+    }
+    return count;
+}
+
+/*function to find the smallest integer position in an array*/
+static int findSmallestIntPos(struct Node** readyProcesses, int numOfElements){
+    for(int i = 0; i < N; i++){
+        pthread_mutex_lock(&queueMutex[i]);
+    }
+    int arr[N];
+    for(int i = 0; i < N; i++){
+        arr[i] = getQueueLength(readyProcesses[i]);
+    }
+    int val = arr[0];
+    int position = 0;
+    for(int i = 0; i < numOfElements; i++){
+        if(val > arr[i]){
+            val = arr[i];
+            position = i;
+        }
+    }
+    for(int i = 0; i < N; i++){
+        pthread_mutex_unlock(&queueMutex[i]);
+    }
+    return position;
+}
+
 /* the function to be executed by threads (processors) */
 static void *processBurst(void *arg_ptr){
     int processorId = ((struct arg *) arg_ptr)->processorId;
@@ -239,10 +267,10 @@ static void *processBurst(void *arg_ptr){
         queueId = processorId;
     }
 
-    pthread_mutex_lock(&loadNumMutex[queueId]);
-    while(*readyQueue == NULL || !isDummyDetected || loadNum[queueId] > 1){
-        pthread_mutex_unlock(&loadNumMutex[queueId]);
-        pthread_mutex_lock(&queueMutex[queueId]);
+    pthread_mutex_lock(&queueMutex[queueId]);
+    int length = getQueueLength(*readyQueue);
+    while(*readyQueue == NULL || !isDummyDetected || length > 1){
+        printf("the length is %d\n", length);
         if(*readyQueue == NULL){
             pthread_mutex_unlock(&queueMutex[queueId]);
             usleep(1000);
@@ -250,10 +278,13 @@ static void *processBurst(void *arg_ptr){
         else if((*readyQueue)->pcb.pid == -1){
             printf("dummy detected\n");
             isDummyDetected = 1;
+            addNodeToEndDummy(readyQueue, processorId);
+            deleteHeadNode(readyQueue);
+            pthread_mutex_unlock(&queueMutex[queueId]);
         }
         else{
             (*readyQueue)->pcb.processorId = processorId;
-            printf("Process starts, processor id = %d, pid = %d burst length = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid, (*readyQueue)->pcb.burstLength);
+            printf("Process starts, processor id = %d, pid = %d rem length = %d\n", (*readyQueue)->pcb.processorId, (*readyQueue)->pcb.pid, (*readyQueue)->pcb.remainingTime);
             int isFinished = 0;
             struct Node** current;
             int finPid, finBurst, finArr, finRem, finFinTime, finTurn, finWaiting, finProcessorId;
@@ -288,7 +319,7 @@ static void *processBurst(void *arg_ptr){
                 finTurn = (*current)->pcb.turnaroundTime;
                 finWaiting = (*current)->pcb.waitingTime;
                 finProcessorId = (*current)->pcb.processorId;
-                deleteHeadNode(readyQueue, queueId);
+                deleteHeadNode(readyQueue);
                 pthread_mutex_unlock(&queueMutex[queueId]);
             }
 
@@ -325,7 +356,7 @@ static void *processBurst(void *arg_ptr){
                     finTurn = (*current)->pcb.turnaroundTime;
                     finWaiting = (*current)->pcb.waitingTime;
                     finProcessorId = (*current)->pcb.processorId;
-                    deleteHeadNode(readyQueue, queueId);
+                    deleteHeadNode(readyQueue);
                 }
                 else {
                     if(outmode == 2){
@@ -347,7 +378,7 @@ static void *processBurst(void *arg_ptr){
                     (*current)->pcb.remainingTime = (*current)->pcb.remainingTime - Q;
                     addNodeToEnd(readyQueue, (*current)->pcb.pid, (*current)->pcb.processorId, (*current)->pcb.arrivalTime, 
                                 (*current)->pcb.burstLength, (*current)->pcb.remainingTime, 0, 0 , 0);
-                    deleteHeadNode(readyQueue, queueId);
+                    deleteHeadNode(readyQueue);
                 }
                 pthread_mutex_unlock(&queueMutex[queueId]);
             }
@@ -361,24 +392,12 @@ static void *processBurst(void *arg_ptr){
                 pthread_mutex_unlock(&finishedProcessesMutex);
             }
         }
-        pthread_mutex_lock(&loadNumMutex[queueId]);  
+        pthread_mutex_lock(&queueMutex[queueId]); 
+        length = getQueueLength(*readyQueue); 
     }
-    pthread_mutex_unlock(&loadNumMutex[queueId]);
+    pthread_mutex_unlock(&queueMutex[queueId]);
     printf("Thread no %d exited\n", processorId);
     pthread_exit(NULL); 
-}
-
-/*function to find the smallest integer position in an array*/
-static int findSmallestIntPos(int* intArr, int numOfElements){
-    int val = intArr[0];
-    int position = 0;
-    for(int i = 0; i < numOfElements; i++){
-        if(val > intArr[i]){
-            val = intArr[i];
-            position = i;
-        }
-    }
-    return position;
 }
 
 int main(int argc, char* argv[])
@@ -391,7 +410,7 @@ int main(int argc, char* argv[])
     /* thread (processor) function arguments */
     struct arg* t_args;
     /* the number of processors */
-    int N = 2;
+    N = 2;
     int T=200, T1=10, T2=1000, L=100, L1=10, L2=500, pc=10;
     outmode = 1;
     /* the scheduling approach S or M */
@@ -480,18 +499,14 @@ int main(int argc, char* argv[])
     /* initialize the queue mutex array */
     if(strcmp(sap, "M") == 0){
         queueMutex = (pthread_mutex_t*) malloc(N * sizeof(pthread_mutex_t));
-        loadNumMutex = (pthread_mutex_t*) malloc(N * sizeof(pthread_mutex_t));
         /* initialize every mutex lock of queue(s) inside for loop */
         for (int i = 0; i < N; i++){
             pthread_mutex_init(&queueMutex[i], NULL);
-            pthread_mutex_init(&loadNumMutex[i], NULL);
         }        
     }
     else if(strcmp(sap, "S") == 0){
         queueMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
-        loadNumMutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
         pthread_mutex_init(queueMutex, NULL);
-        pthread_mutex_init(loadNumMutex, NULL);
     }
 
     /* initialize the finished processes mutex lock*/
@@ -504,17 +519,11 @@ int main(int argc, char* argv[])
         for(int i = 0; i < N; i++){
             readyProcesses[i] = NULL;
         }
-        loadNum = (int*) malloc(N * sizeof(int));
-        for(int i = 0; i < N; i++){
-            loadNum[i] = 0;
-        }
     }
     else if(strcmp(sap, "S") == 0){
         readyProcesses = (struct Node**) malloc(sizeof(struct Node*));
         readyQueueNum = 1;
         readyProcesses[0] = NULL;
-        loadNum = (int*) malloc(sizeof(int));
-        loadNum[0] = 0;
     }
 
     /* THREAD CREATION PART */
@@ -581,12 +590,9 @@ int main(int argc, char* argv[])
                     queueTurn++;
                     pidCount++;
                     pthread_mutex_unlock(&queueMutex[pos]);
-                    pthread_mutex_lock(&loadNumMutex[pos]);
-                    loadNum[pos] = loadNum[pos] + 1;
-                    pthread_mutex_unlock(&loadNumMutex[pos]);
                 }
                 if(strcmp(qs,"LM") == 0){
-                    int smallestIntPos = findSmallestIntPos(loadNum, N);
+                    int smallestIntPos = findSmallestIntPos(readyProcesses, N);
                     pthread_mutex_lock(&queueMutex[smallestIntPos]);
                     gettimeofday(&tarrival, 0);
                     int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
@@ -601,9 +607,6 @@ int main(int argc, char* argv[])
                     }
                     pidCount++;
                     pthread_mutex_unlock(&queueMutex[smallestIntPos]);
-                    pthread_mutex_lock(&loadNumMutex[smallestIntPos]);
-                    loadNum[smallestIntPos] = loadNum[smallestIntPos] + 1;
-                    pthread_mutex_unlock(&loadNumMutex[smallestIntPos]);
                 }
                 if(strcmp(qs, "NA") == 0){
                     pthread_mutex_lock(&queueMutex[0]);
@@ -619,10 +622,7 @@ int main(int argc, char* argv[])
                         addNodeAccordingToSJF(&readyProcesses[0],pidCount, -1, arrivalTime, timeInput, timeInput, 0, 0, 0);
                     }
                     pidCount++;
-                    pthread_mutex_unlock(&queueMutex[0]);
-                    pthread_mutex_lock(&loadNumMutex[0]);
-                    loadNum[0] = loadNum[0] + 1;
-                    pthread_mutex_unlock(&loadNumMutex[0]);
+                    pthread_mutex_unlock(&queueMutex[0]);;
                 }
             }
 
@@ -668,7 +668,7 @@ int main(int argc, char* argv[])
                 pthread_mutex_unlock(&queueMutex[pos]);
             }
             if(strcmp(qs,"LM") == 0){
-                int smallestIntPos = findSmallestIntPos(loadNum, N);
+                int smallestIntPos = findSmallestIntPos(readyProcesses, N);
                 pthread_mutex_lock(&queueMutex[smallestIntPos]);
                 gettimeofday(&tarrival, 0);
                 int arrivalTime = 1000 * (tarrival.tv_sec - tbegin.tv_sec) + 0.001 * (tarrival.tv_usec - tbegin.tv_usec);
@@ -683,7 +683,6 @@ int main(int argc, char* argv[])
                 }
                 pidCount++;
                 pthread_mutex_unlock(&queueMutex[smallestIntPos]);
-                loadNum[smallestIntPos] = loadNum[smallestIntPos] + 1;
             }
             if(strcmp(qs, "NA") == 0){
                 pthread_mutex_lock(&queueMutex[0]);
@@ -700,9 +699,6 @@ int main(int argc, char* argv[])
                 }
                 pidCount++;
                 pthread_mutex_unlock(&queueMutex[0]);
-                pthread_mutex_lock(&loadNumMutex[0]);
-                loadNum[0] = loadNum[0] + 1;
-                pthread_mutex_unlock(&loadNumMutex[0]);
             }
 
             //iat process
@@ -784,9 +780,7 @@ int main(int argc, char* argv[])
         }
 
         pthread_mutex_destroy(&queueMutex[0]);
-        pthread_mutex_destroy(&loadNumMutex[0]);
         free(queueMutex);
-        free(loadNumMutex);
     }
 
     if(strcmp(sap, "M") == 0){
@@ -801,10 +795,8 @@ int main(int argc, char* argv[])
             }
 
             pthread_mutex_destroy(&queueMutex[i]);
-            pthread_mutex_destroy(&loadNumMutex[i]);
         }
         free(queueMutex);
-        free(loadNumMutex);
     }
 
     free(readyProcesses);
@@ -817,8 +809,6 @@ int main(int argc, char* argv[])
         free(current);
         current = next;
     }
-
-    free(loadNum);
 
     exit(0);
     return(0);
