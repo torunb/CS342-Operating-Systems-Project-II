@@ -163,6 +163,32 @@ static void deleteHeadNode(struct Node** head){
     return;
 }
 
+/* function to sort the linked list in ascending order*/
+static void sortQueueAsc(struct Node* head){
+    struct Node* current = head;
+    struct Node* index = NULL;
+
+    int tempPid;
+
+    if(head == NULL){
+        return;
+    }else{
+        while(current != NULL){
+            index = current->next;
+
+            while(index != NULL){
+                if(current->pcb.pid > index->pcb.pid){
+                    tempPid = current->pcb.pid;
+                    current->pcb.pid = index->pcb.pid;
+                    index->pcb.pid = tempPid;
+                }
+                index = index->next;
+            }
+            current = current->next;
+        }
+    }
+}
+
 void static printInformation(struct Node** head, int currentTime){
     if(*head == NULL){
         printf("Error! Empty list\n");
@@ -170,13 +196,13 @@ void static printInformation(struct Node** head, int currentTime){
     
     else{
         struct Node** now = head;
-
         while(*now != NULL){
+            
             if(!outfile && (*now)->pcb.pid != -1){
-                printf("time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
+                printf("time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId + 1, (*now)->pcb.pid + 1, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
             }
             else if(outfile && (*now)->pcb.pid != -1){
-                fprintf(outFilePtr, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId, (*now)->pcb.pid, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
+                fprintf(outFilePtr, "time = %d, cpu = %d, pid = %d, burstlen = %d, remainingtime = %d\n", currentTime, (*now)->pcb.processorId + 1, (*now)->pcb.pid + 1, (*now)->pcb.burstLength, (*now)->pcb.remainingTime);
             }
             now = &((*now)->next);
         }
@@ -190,22 +216,21 @@ void static printOutMode3(struct Node** head, int stayFor, char* alg){
 
     else{
         struct Node** now = head;
-
         while(*now != NULL){
             if(strcmp(alg, "FCFS") == 0 || strcmp(alg, "SJF") == 0){
                 if(!outfile && (*now)->pcb.pid != -1){
-                    printf("pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
+                    printf("pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid + 1, (*now)->pcb.processorId + 1, (*now)->pcb.remainingTime);
                 }
                 else if(outfile && (*now)->pcb.pid != -1){
-                    fprintf(outFilePtr, "pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.processorId, (*now)->pcb.remainingTime);
+                    fprintf(outFilePtr, "pid = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid + 1, (*now)->pcb.processorId + 1, (*now)->pcb.remainingTime);
                 }
             }
             else if(strcmp(alg, "RR") == 0){
                 if(!outfile && (*now)->pcb.pid != -1){
-                    printf("pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
+                    printf("pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid + 1, (*now)->pcb.remainingTime, (*now)->pcb.processorId + 1, stayFor);
                 }
                 else if(outfile && (*now)->pcb.pid != -1){
-                    fprintf(outFilePtr, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid, (*now)->pcb.remainingTime, (*now)->pcb.processorId, stayFor);
+                    fprintf(outFilePtr, "pid = %d, remaining time = %d, cpu = %d, it will stay for = %d\n", (*now)->pcb.pid + 1, (*now)->pcb.remainingTime, (*now)->pcb.processorId + 1, stayFor);
                 }
             }
             now = &((*now)->next);
@@ -714,11 +739,12 @@ int main(int argc, char* argv[])
     int avgTurnaround = 0;
     int countForAvg = 0;
     
+    sortQueueAsc(curr);
     if(!outfile){
         printf("\n");
         printf("%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
         while(curr != NULL){
-            printf("%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
+            printf("%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid + 1, curr->pcb.processorId + 1, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
             avgTurnaround = avgTurnaround + curr->pcb.turnaroundTime;
             countForAvg++;
             curr = curr->next;
@@ -732,7 +758,7 @@ int main(int argc, char* argv[])
         fprintf(outFilePtr, "\n");
         fprintf(outFilePtr, "%-10s %-10s %-10s %-10s %-10s %-12s %-10s\n", "pid", "cpu", "burstlen", "arv", "finish", "waitingtime", "turnaround");
         while(curr != NULL){
-            fprintf(outFilePtr, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid, curr->pcb.processorId, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
+            fprintf(outFilePtr, "%-10d %-10d %-10d %-10d %-10d %-12d %-10d\n", curr->pcb.pid + 1, curr->pcb.processorId + 1, curr->pcb.burstLength, curr->pcb.arrivalTime, curr->pcb.finishTime, curr->pcb.waitingTime, curr->pcb.turnaroundTime);
             avgTurnaround = avgTurnaround + curr->pcb.turnaroundTime;
             countForAvg++;
             curr = curr->next;

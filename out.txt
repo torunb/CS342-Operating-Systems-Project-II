@@ -1,45 +1,45 @@
-pid = 0, remaining time = 80, cpu = 0, it will stay for = 20
-pid = 0, remaining time = 60, cpu = 0, it will stay for = 20
-pid = 0, remaining time = 40, cpu = 0, it will stay for = 20
-pid = 0, remaining time = 20, cpu = 0, it will stay for = 20
-pid = 1, remaining time = 200, cpu = 1, it will stay for = 20
-pid = 2, remaining time = 50, cpu = 2, it will stay for = 20
-pid = 1, remaining time = 180, cpu = 1, it will stay for = 20
-pid = 2, remaining time = 30, cpu = 2, it will stay for = 20
-pid = 1, remaining time = 160, cpu = 1, it will stay for = 20
-pid = 2, remaining time = 10, cpu = 2, it will stay for = 10
-pid = 1, remaining time = 140, cpu = 1, it will stay for = 20
-pid = 3, remaining time = 120, cpu = 3, it will stay for = 20
-pid = 1, remaining time = 120, cpu = 1, it will stay for = 20
-pid = 3, remaining time = 100, cpu = 3, it will stay for = 20
-pid = 1, remaining time = 100, cpu = 1, it will stay for = 20
-pid = 3, remaining time = 80, cpu = 3, it will stay for = 20
 pid = 1, remaining time = 80, cpu = 1, it will stay for = 20
-pid = 3, remaining time = 60, cpu = 3, it will stay for = 20
 pid = 1, remaining time = 60, cpu = 1, it will stay for = 20
-pid = 3, remaining time = 40, cpu = 3, it will stay for = 20
 pid = 1, remaining time = 40, cpu = 1, it will stay for = 20
 pid = 1, remaining time = 20, cpu = 1, it will stay for = 20
-pid = 3, remaining time = 20, cpu = 3, it will stay for = 20
+pid = 2, remaining time = 200, cpu = 2, it will stay for = 20
+pid = 3, remaining time = 50, cpu = 3, it will stay for = 20
+pid = 2, remaining time = 180, cpu = 2, it will stay for = 20
+pid = 3, remaining time = 30, cpu = 3, it will stay for = 20
+pid = 2, remaining time = 160, cpu = 2, it will stay for = 20
+pid = 3, remaining time = 10, cpu = 3, it will stay for = 10
+pid = 2, remaining time = 140, cpu = 2, it will stay for = 20
+pid = 4, remaining time = 120, cpu = 4, it will stay for = 20
+pid = 2, remaining time = 120, cpu = 2, it will stay for = 20
 pid = 4, remaining time = 100, cpu = 4, it will stay for = 20
+pid = 2, remaining time = 100, cpu = 2, it will stay for = 20
 pid = 4, remaining time = 80, cpu = 4, it will stay for = 20
-pid = 5, remaining time = 40, cpu = 5, it will stay for = 20
+pid = 2, remaining time = 80, cpu = 2, it will stay for = 20
 pid = 4, remaining time = 60, cpu = 4, it will stay for = 20
-pid = 5, remaining time = 20, cpu = 5, it will stay for = 20
-pid = 6, remaining time = 80, cpu = 6, it will stay for = 20
+pid = 2, remaining time = 60, cpu = 2, it will stay for = 20
 pid = 4, remaining time = 40, cpu = 4, it will stay for = 20
-pid = 6, remaining time = 60, cpu = 6, it will stay for = 20
+pid = 2, remaining time = 40, cpu = 2, it will stay for = 20
 pid = 4, remaining time = 20, cpu = 4, it will stay for = 20
+pid = 2, remaining time = 20, cpu = 2, it will stay for = 20
+pid = 5, remaining time = 100, cpu = 5, it will stay for = 20
+pid = 5, remaining time = 80, cpu = 5, it will stay for = 20
 pid = 6, remaining time = 40, cpu = 6, it will stay for = 20
+pid = 5, remaining time = 60, cpu = 5, it will stay for = 20
 pid = 6, remaining time = 20, cpu = 6, it will stay for = 20
+pid = 7, remaining time = 80, cpu = 7, it will stay for = 20
+pid = 5, remaining time = 40, cpu = 5, it will stay for = 20
+pid = 7, remaining time = 60, cpu = 7, it will stay for = 20
+pid = 5, remaining time = 20, cpu = 5, it will stay for = 20
+pid = 7, remaining time = 40, cpu = 7, it will stay for = 20
+pid = 7, remaining time = 20, cpu = 7, it will stay for = 20
 
 pid        cpu        burstlen   arv        finish     waitingtime  turnaround
-0          0          80         190        291        21           101       
-2          2          50         305        356        1            51        
-1          1          200        295        496        1            201       
-3          3          120        375        497        2            122       
-5          5          40         645        729        44           84        
-4          4          100        625        750        25           125       
-6          6          80         678        790        32           112       
+1          1          80         193        289        16           96        
+2          3          50         307        358        1            51        
+3          2          200        297        499        2            202       
+4          4          120        378        499        1            121       
+5          6          40         648        720        32           72        
+6          5          100        628        829        101          201       
+7          7          80         681        851        90           170       
 
-Average turnaround time: 113
+Average turnaround time: 130
