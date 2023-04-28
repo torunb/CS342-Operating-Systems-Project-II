@@ -329,7 +329,7 @@ static void *processBurst(void *arg_ptr){
                     if(outmode == 2){
                         printf("OUTMODE 2\n");
                         gettimeofday(&now, NULL);
-                        double currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
+                        int currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                         printInformation(current, currentTime);
                     }
                     else if(outmode == 3){
@@ -356,13 +356,15 @@ static void *processBurst(void *arg_ptr){
                     finTurn = (*current)->pcb.turnaroundTime;
                     finWaiting = (*current)->pcb.waitingTime;
                     finProcessorId = (*current)->pcb.processorId;
+                    printf("pid = %d, burst = %d, arr = %d, rem = %d, fin = %d, turn = %d, waiting= %d, processorId = %d\n",
+                           finPid,finBurst,finArr,finRem,finFinTime,finTurn,finWaiting,finProcessorId);
                     deleteHeadNode(readyQueue);
                 }
                 else {
                     if(outmode == 2){
                         printf("OUTMODE 2\n");
                         gettimeofday(&now, NULL);
-                        double currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
+                        int currentTime = 1000 * (now.tv_sec - tbegin.tv_sec) + 0.001 * (now.tv_usec - tbegin.tv_usec);
                         printInformation(current, currentTime);
                     }
                     else if(outmode == 3){
